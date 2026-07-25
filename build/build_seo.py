@@ -78,6 +78,7 @@ try:
 except FileNotFoundError:
     TWOK = {"ratings": {}, "edition": ""}
 TWOK_R = TWOK.get("ratings", {})
+SHOW_2K = False   # hide all 2K sections+page while the dataset is incomplete/stale
 try:
     INJ = json.load(open(DATA / "injuries.json"))
 except FileNotFoundError:
@@ -125,8 +126,8 @@ def page(title, desc, canon, body, jsonld=None, og_type="website"):
 <meta name="twitter:title" content="{esc(title)} — Dunkwise" />
 <meta name="twitter:description" content="{esc(desc)}" />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Schibsted+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="{BASE}/ds/tokens.css?v=104" />
-<link rel="stylesheet" href="{BASE}/styles.css?v=104" />
+<link rel="stylesheet" href="{BASE}/ds/tokens.css?v=105" />
+<link rel="stylesheet" href="{BASE}/styles.css?v=105" />
 {ld}
 </head>
 <body>
@@ -346,6 +347,7 @@ _TWOK_SKILLS = [("Outside scoring", ["closeShot", "midRangeShot", "threePointSho
                 ("Athleticism", ["speed", "agility", "strength", "vertical"])]
 
 def _twok_block(pid, name):
+    if not SHOW_2K: return ""
     r = TWOK_R.get(pid)
     if not r: return ""
     ed = esc(TWOK.get("edition", "NBA 2K"))
@@ -1327,7 +1329,7 @@ def main():
     print("index hubs: players/index.html, teams/index.html")
 
     # unique differentiators (bbref has neither)
-    if TWOK_R:
+    if TWOK_R and SHOW_2K:
         emit(*render_2k(meta2k))
         print(f"2K ratings: {len(TWOK_R)} players")
     if INJ.get("byPlayer"):

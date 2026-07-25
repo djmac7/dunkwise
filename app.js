@@ -3,13 +3,14 @@
    Async data access; official-CDN logos/headshots with fallbacks.
    ============================================================ */
 (function () {
-  const V = "48";
+  const V = "49";
   // Injury report is hidden site-wide until we have reliable, injury-specific data for
   // every player (the ESPN feed is offseason transaction noise). Flip to true to restore.
   const SHOW_INJURIES = false;
   // Betting / slate section hidden for now (legal/age-gating review pending). Flip to true to restore;
   // the nav links live in index.html (search "data-route=\"betting\"").
   const SHOW_BETTING = false;
+  const SHOW_2K = false;   // 2K data is incomplete/stale (no clean 2K23/24/26 source) — hidden until it can be kept current
   const app = document.getElementById("app");
   const tt = document.getElementById("tt");
   const $ = (s, r = document) => r.querySelector(s);
@@ -1293,6 +1294,7 @@
 
   // NBA 2K rating card — OVR badge + six attribute-category bars (dense by design).
   async function twoKCard(pid) {
+    if (!SHOW_2K) return "";
     let d; try { d = await getTwoK(); } catch (e) { return ""; }
     const r = d && d.ratings && d.ratings[pid];
     const hist = await getTwoKHist();
@@ -1521,7 +1523,7 @@
         ${numHistHtml ? `<div class="co-row"><span class="co-lab">Numbers</span><div class="jsy-row">${numHistHtml}</div></div>` : ""}
       </div>` : ""}
 
-      <nav class="jumpnav" id="jumpNav">${[["Stats", "sec-stats"], ["Recent", "recentForm"], ["Shooting", "sec-shooting"], (salRows && salRows.length ? ["Salary", "sec-salary"] : null), ["2K", "sec-2k"], ["News", "playerNews"], ["Related", "relPlayers"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
+      <nav class="jumpnav" id="jumpNav">${[["Stats", "sec-stats"], ["Recent", "recentForm"], ["Shooting", "sec-shooting"], (salRows && salRows.length ? ["Salary", "sec-salary"] : null), (SHOW_2K ? ["2K", "sec-2k"] : null), ["News", "playerNews"], ["Related", "relPlayers"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
 
       <div class="card pad" id="sec-stats" style="min-width:0;margin-bottom:22px">
         <div class="card-h"><div style="display:flex;align-items:baseline;gap:14px;min-width:0"><h3>Career stats</h3></div>
