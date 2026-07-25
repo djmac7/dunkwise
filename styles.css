@@ -246,11 +246,16 @@ table.ref .season{font-weight:600;color:var(--ink)}
 /* future draft-pick ledger (team hub). Each pick is its own line, typed by a leading mark
    instead of a count chip: a solid square = owned outright, a hollow ring = conditional
    (protected / swap / "if"), an arrow = a pick owed away. The source team leads each line;
-   routing and conditions are dimmed. Selector is qualified with `table` to out-specify
-   table.ref's right-aligned, nowrap numeric cells. */
-table.dp-tbl td{white-space:normal;vertical-align:top;text-align:left;padding:16px}
-table.dp-tbl td.dp-yr{font-family:var(--serif);font-size:15px;color:var(--ink);font-weight:600;width:1%;white-space:nowrap;padding-top:12px}
-table.dp-tbl tbody tr:hover td{background:transparent}   /* tall reference rows, not clickable — no hover flash */
+   routing and conditions are dimmed. Laid out as airy per-year blocks, not a table. */
+.dp-year{display:grid;grid-template-columns:52px minmax(0,1fr) minmax(0,1fr);gap:14px 30px;padding:20px 20px;border-top:1px solid var(--line-soft);align-items:start}
+.dp-year:first-child{border-top:0}
+.dp-year-h{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1;padding-top:1px}
+.dp-round-lbl{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-4);margin:0 0 10px}
+@media (max-width:640px){
+  .dp-year{grid-template-columns:1fr;gap:2px;padding:16px}
+  .dp-year-h{font-size:19px;margin-bottom:6px}
+  .dp-round{margin-top:14px}
+}
 .dp-picks{list-style:none;margin:0;padding:0;font-family:var(--sans);font-size:12.5px;line-height:1.55;color:var(--ink-2)}
 .dp-p{position:relative;padding-left:19px;margin:0 0 12px}
 .dp-p:last-child{margin-bottom:0}
@@ -270,11 +275,11 @@ table.dp-tbl tbody tr:hover td{background:transparent}   /* tall reference rows,
 .dp-fn{margin-top:8px;padding-left:18px;position:relative;font-family:var(--sans);font-size:11px;line-height:1.45;color:var(--ink-3)}
 .dp-fn::before{content:"*";position:absolute;left:6px;top:0;color:var(--ink-4)}
 /* legend */
-.dp-legend{display:flex;flex-wrap:wrap;gap:20px;padding:2px 16px 14px;border-bottom:1px solid var(--line-soft);margin-bottom:2px}
+.dp-legend{display:flex;flex-wrap:wrap;gap:20px;padding:15px 20px 14px;border-bottom:1px solid var(--line-soft)}
 .dp-legend .dp-p{margin:0;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
 .dp-legend .dp-p::before{top:3px}
 .dp-legend .dp-p.out::before{top:-1px}
-.dp-src{font-size:11.5px;margin:12px 16px 3px}
+.dp-src{font-size:11.5px;margin:6px 20px 4px}
 /* generic long-table collapse — franchise history, salaries, leaders, draft, all-time, etc.
    Rows past the preview limit hide behind a centered Show-more toggle (collapseLongTables).
    The button reuses the shared .btn component; here we just make it full-width + rotate the chevron. */
