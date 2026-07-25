@@ -446,7 +446,7 @@
         <div class="card big pad reveal" id="newsCard">
           <div class="card-h"><h3>Around the league</h3><a class="hint" href="#/news" style="color:var(--ink-3)">More news →</a></div>
           ${news && news.items && news.items.length ? `<div class="newsfeed">${newsList(news.items, 9)}</div>
-            <div class="news-foot">Headlines from ESPN, CBS, Yahoo &amp; Sporting News · updated ${timeAgo(news.fetched)} ago</div>` :
+            <div class="news-foot">Headlines from ESPN, CBS, Yahoo, Sporting News &amp; r/nba · updated ${timeAgo(news.fetched)} ago</div>` :
             `<p class="muted" style="font-size:14px">News feed unavailable right now.</p>`}
         </div>
         <div class="stack">
@@ -1016,7 +1016,7 @@
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>News</span></div>
       <div class="section-title"><div><span class="eyebrow">${items.length} headlines · updated ${news ? timeAgo(news.fetched) + " ago" : "—"}</span><h2>Around the league</h2></div></div>
       ${items.length ? `<div class="ncard-grid">${items.map((it, i) => newsCard(it, i)).join("")}</div>
-        <p class="news-foot" style="margin-top:16px">Aggregated NBA headlines from ESPN, CBS Sports, Yahoo and Sporting News, with player tags detected automatically. Each item opens an in-site summary that links to the full story at its source.</p>` :
+        <p class="news-foot" style="margin-top:16px">Aggregated NBA headlines from ESPN, CBS Sports, Yahoo, Sporting News and r/nba, with player tags detected automatically. Each item opens an in-site summary that links to the full story at its source.</p>` :
         `<p class="muted">No news available right now — check back soon.</p>`}
     </div>`;
   }
@@ -2404,6 +2404,30 @@
   const ptGet = (c, r) => (c.getv ? c.getv(r) : r[c.k]);
   // every school a player attended, earliest first (single-school players have no .cols)
   const ptColleges = (r) => r.cols || (r.col ? [r.col] : []);
+
+  // ---- filter tree (Linear-style advanced filtering) ----
+  // PT.root is a group: { join:"and"|"or", kids:[node…] }. A node is either a
+  // condition { k, op, vals, neg? } (neg = "is not") or a nested group. `path` is an
+  // array of child indices addressing a node from the root ([] is the root itself).
+  const ptIsGroup = (n) => n && Array.isArray(n.kids);
+  const ptFlat = (g) => g.kids.every((n) => !ptIsGroup(n));              // no nested groups
+  const ptCountLeaves = (g) => g.kids.reduce((n, k) => n + (ptIsGroup(k) ? ptCountLeaves(k) : 1), 0);
+  const ptNodeAt = (path) => path.reduce((n, i) => n.kids[i], PT.root);
+  const ptParentAt = (path) => ({ group: ptNodeAt(path.slice(0, -1)), idx: path[path.length - 1] });
+  const ptRemoveAt = (path) => { const { group, idx } = ptParentAt(path); group.kids.splice(idx, 1); };
+  const ptSetAt = (path, node) => { const { group, idx } = ptParentAt(path); group.kids[idx] = node; };
+  const ptInsertInto = (groupPath, node) => ptNodeAt(groupPath).kids.push(node);
+  const ptPath = (s) => (s === "" ? [] : s.split(".").map(Number));      // encode/decode paths as dot strings
+  // sanitize a tree from a shared URL: drop conditions on unknown columns and empty nested groups
+  function ptCleanTree(g, isRoot) {
+    if (!g || !Array.isArray(g.kids)) return isRoot ? { join: "and", kids: [] } : null;
+    const kids = [];
+    for (const n of g.kids) {
+      if (ptIsGroup(n)) { const c = ptCleanTree(n, false); if (c && c.kids.length) kids.push(c); }
+      else if (n && ptCol(n.k)) kids.push(n);
+    }
+    return { join: g.join === "or" ? "or" : "and", kids };
+  }
 
   function ptCell(c, r) {
     if (c.cell) return c.cell(r);

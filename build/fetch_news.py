@@ -16,6 +16,7 @@ FEEDS = [
     ("Yahoo Sports", "https://sports.yahoo.com/nba/rss/"),
     ("Bleacher Report", "https://bleacherreport.com/articles/feed?tag_id=19"),
     ("Sporting News", "https://www.sportingnews.com/us/rss/nba"),
+    ("r/nba", "https://www.reddit.com/r/nba/.rss"),
 ]
 UA = {"User-Agent": "Mozilla/5.0 (DunkwiseBot; headlines aggregator)"}
 
