@@ -84,6 +84,7 @@ def keep(s): return ALL or s in SEASONS
 os.makedirs(os.path.join(DATA, "game"), exist_ok=True)
 os.makedirs(os.path.join(DATA, "games"), exist_ok=True)
 os.makedirs(os.path.join(DATA, "pgames"), exist_ok=True)
+os.makedirs(os.path.join(DATA, "pslog"), exist_ok=True)
 
 # ---- 1) games index (Games.csv) ----
 games = {}
@@ -122,7 +123,8 @@ with open(os.path.join(RAW, "TeamStatistics.csv"), newline="", encoding="utf-8")
         gs["paint"] = i(r.get("pointsInThePaint")); gs["fast"] = i(r.get("pointsFastBreak"))
 
 # ---- 3) player box scores (stream + flush per game; PlayerStatistics is grouped, newest-first) ----
-pgames = defaultdict(list)
+pgames = defaultdict(list)                       # capped recent feed (profile card / all-games page)
+pslog = defaultdict(lambda: defaultdict(list))   # full per-player-per-season log (pseason pages)
 written = 0
 flushed = set()
 def flush(gid, box):
@@ -163,13 +165,16 @@ with open(os.path.join(RAW, "PlayerStatistics.csv"), newline="", encoding="utf-8
                "ftm": i(r.get("freeThrowsMade")), "fta": i(r.get("freeThrowsAttempted")),
                "pm": i(r.get("plusMinusPoints")), "start": bool(r.get("startingPosition"))}
         cur_box[side].append(row)
-        if pid and mins and len(pgames[pid]) < PG_LIMIT:   # newest-first -> first 25 are most recent
+        if pid and mins:                                   # a game the player actually appeared in
             g = games[gid]
             opp = g["away"]["abbr"] if side == "home" else g["home"]["abbr"]
             us, them = g[side]["score"], g["away" if side == "home" else "home"]["score"]
-            pgames[pid].append({"id": gid, "date": g["date"], "opp": opp, "home": side == "home",
-                                "w": (us or 0) > (them or 0), "us": us, "them": them, "min": row["min"],
-                                "pts": row["pts"], "reb": row["reb"], "ast": row["ast"], "pm": row["pm"]})
+            prow = {"id": gid, "date": g["date"], "opp": opp, "home": side == "home",
+                    "w": (us or 0) > (them or 0), "us": us, "them": them, "min": row["min"],
+                    "pts": row["pts"], "reb": row["reb"], "ast": row["ast"], "pm": row["pm"]}
+            pslog[pid][g["season"]].append(prow)           # full per-season log (uncapped)
+            if len(pgames[pid]) < PG_LIMIT:                # newest-first -> first PG_LIMIT are most recent
+                pgames[pid].append(prow)
     if cur_gid is not None: flush(cur_gid, cur_box)
 
 # games with no box-score rows (older seasons) still get a detail page: score + line, empty box
@@ -189,4 +194,15 @@ for pid, rows in pgames.items():
     rows.sort(key=lambda x: x["date"], reverse=True)
     json.dump(rows[:PG_LIMIT], open(os.path.join(DATA, "pgames", f"{pid}.json"), "w"),
               separators=(",", ":"), ensure_ascii=False)
-print(f"wrote {written} game files, {len(index)} season index(es), {len(pgames)} player game-logs")
+# full per-player-season logs — one small file per (player, season), chronological.
+# Only written when this run processed that season, so a single-season refresh updates
+# just the current year's files (idempotent) and an `all` run backfills everything.
+ps_files = 0
+for pid, seasons in pslog.items():
+    pdir = os.path.join(DATA, "pslog", pid)
+    os.makedirs(pdir, exist_ok=True)
+    for s, rows in seasons.items():
+        rows.sort(key=lambda x: x["date"])
+        json.dump(rows, open(os.path.join(pdir, f"{s}.json"), "w"), separators=(",", ":"), ensure_ascii=False)
+        ps_files += 1
+print(f"wrote {written} game files, {len(index)} season index(es), {len(pgames)} recent feeds, {ps_files} per-season logs")

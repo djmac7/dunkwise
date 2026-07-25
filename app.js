@@ -40,6 +40,7 @@
   const getThisday = () => _thisday ? Promise.resolve(_thisday) : j(`data/thisday.json?v=${V}`).then((d) => (_thisday = d)).catch(() => (_thisday = {}));
   const getGame = (id) => j(`data/game/${id}.json?v=${V}`);
   const getPGames = (pid) => j(`data/pgames/${pid}.json?v=${V}`);
+  const getPSLog = (pid, s) => j(`data/pslog/${pid}/${s}.json?v=${V}`);   // a player's full game log for one season
   const getTwoK = () => j(`data/twok.json?v=${V}`);
   const getTwoKHist = () => j(`data/twok_history.json?v=${V}`).catch(() => null);
   let _dpCache = null;
@@ -1671,12 +1672,10 @@
       <div id="psGames"></div>
       <div class="actionbar" style="margin-top:22px"><a class="btn" href="#/player/${p.id}"><span class="ic-swap">←</span> Full career</a></div>
     </div>`;
-    // Per-season game log, drawn from the player's stored game rows (their most recent
-    // ~100 games). Shows for any season those rows cover — not just the current one.
-    getPGames(pid).then((all) => {
-      if (!all || !all.length) return;
-      const rows = all.filter((r) => seasonOf(r.date) === yr);
-      if (!rows.length) return;
+    // Per-season game log — the player's full list of games for this exact season
+    // (data/pslog/<pid>/<season>.json). Absent only for pre-box-score seasons.
+    getPSLog(pid, yr).then((rows) => {
+      if (!rows || !rows.length) return;
       const el = $("#psGames");
       el.innerHTML = `<div class="section-title" style="margin-top:26px"><div><h2>${seasonLabel(yr)} game log</h2><span class="hint">${rows.length} game${rows.length === 1 ? "" : "s"}</span></div><a class="link" href="#/games/player/${pid}">All games →</a></div>
           <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
@@ -1686,7 +1685,7 @@
               <td class="l"><span class="pill ${r.w ? "w" : "l"}">${r.w ? "W" : "L"}</span> <span class="muted">${r.us}–${r.them}</span></td>
               <td>${r.min ?? "—"}</td><td class="hi">${r.pts ?? "—"}</td><td>${r.reb ?? "—"}</td><td>${r.ast ?? "—"}</td>
               <td class="${r.pm > 0 ? "pos" : r.pm < 0 ? "neg" : ""}">${r.pm == null ? "—" : r.pm > 0 ? "+" + r.pm : r.pm}</td></tr>`).join("")}</tbody></table></div></div>`;
-    });
+    }).catch(() => {});
   }
   const bioItem = (k, v) => `<div class="b"><div class="k">${k}</div><div class="v">${v}</div></div>`;
   // accolade -> the specific seasons it was earned (for hover detail on chips)
