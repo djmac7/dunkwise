@@ -1,0 +1,18 @@
+{
+  "name": "Six Spins — NBA GOAT Puzzle Game",
+  "short_name": "Six Spins",
+  "description": "Build the NBA GOAT in six spins. A free basketball puzzle game: steal one ability rating each spin, keep spinning, and chase a 99 OVR.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c0e14",
+  "theme_color": "#0c0e14",
+  "categories": ["games", "sports"],
+  "icons": [
+    { "src": "./favicon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" },
+    { "src": "./icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "./icon-512.png", "type": "image/png", "sizes": "512x512" },
+    { "src": "./apple-touch-icon.png", "type": "image/png", "sizes": "180x180" }
+  ]
+}
