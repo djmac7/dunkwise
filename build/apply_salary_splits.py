@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-Apply Basketball-Reference-verified per-team salary splits + current-season fills.
+Apply reference-source-verified per-team salary splits + current-season fills.
 
-Two problems this fixes, both sourced from BBR player pages (build/salary-splits.json):
+Two problems this fixes, both sourced from the reference source player pages (build/salary-splits.json):
 
 1. Dead-money mis-attribution. A bought-out veteran's full guaranteed salary was filed under
    the minimum-salary team he later signed with (Kemba Walker's $37.3M 2022-23 landing on the
-   Mavericks). BBR itemises the real per-team split — the small figure the playing team actually
+   Mavericks). the reference source itemises the real per-team split — the small figure the playing team actually
    paid, plus the dead money owed by the team(s) that waived him — so team-payroll pages become
    exact and no min-signing shows up as a top earner.
 
 2. Current-season gaps. The open CSVs stop at 2024-25, leaving 2025-26 (season 2026) with only a
-   partial top-up. BBR player pages carry the completed 2025-26 figure, added here.
+   partial top-up. the reference source player pages carry the completed 2025-26 figure, added here.
 
 Format:  {pid: {season: [[teamAbbr, amount], ...]}}  — a season's list REPLACES that player's
 bySeason rows for the season; byPlayer[season] becomes the sum (career-earnings total intact).

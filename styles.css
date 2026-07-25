@@ -1273,9 +1273,6 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .legal h3:first-child{margin-top:4px}
 .legal p{color:var(--ink-2);font-size:15px;line-height:1.65}
 .legal-foot{color:var(--ink-3)!important;font-size:13px!important;margin-top:24px;padding-top:16px;border-top:1px solid var(--line)}
-.legal .src-list{margin:12px 0 4px;padding-left:20px;display:grid;gap:9px}
-.legal .src-list li{color:var(--ink-2);font-size:15px;line-height:1.55}
-.legal .src-list a{color:var(--accent-deep);font-weight:500}
 
 /* ---------------- playoff bracket ---------------- */
 .bracket-scroll{overflow-x:auto;padding-bottom:8px;margin-top:6px}
@@ -1323,6 +1320,12 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .pt-pill:focus-visible{outline:none;box-shadow:var(--pt-ring)}
 .pt-pill .x{display:grid;place-items:center;width:19px;height:19px;border-radius:5px;color:var(--ink-3);transition:.12s}
 .pt-pill .x:hover{background:var(--accent-fill);color:var(--on-accent)}
+/* group combinator between filter pills — first gap is a clickable and/or toggle, the rest mirror it */
+.pt-join{display:inline-flex;align-items:center;height:32px;padding:0 8px;border:0;background:transparent;color:var(--ink-3);font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.02em;text-transform:lowercase}
+button.pt-join{cursor:pointer;border-radius:6px;transition:color .12s,background .12s}
+button.pt-join:hover{color:var(--accent-deep);background:var(--accent-wash)}
+button.pt-join:focus-visible{outline:none;box-shadow:var(--pt-ring)}
+.pt-join-static{color:var(--ink-4,var(--ink-3))}
 .pt-reset{height:32px;padding:0 10px;border:0;background:transparent;color:var(--ink-3);font-size:13px;cursor:pointer;border-radius:7px}
 .pt-reset:hover{color:var(--accent-deep);background:var(--accent-wash)}
 .pt-share{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel);color:var(--ink-2);font-size:13px;font-weight:500;cursor:pointer;transition:.15s;white-space:nowrap}

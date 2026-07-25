@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """One-off: extend data/salaries.json with the FULL future contract length.
 
-HoopsHype's team pages already carry every guaranteed year of a contract, but the
-pipeline only kept the current season (plus one ESPN forward year), so the site
+the current-salary source's team pages already carry every guaranteed year of a contract, but the
+pipeline only kept the current season (plus one the live source forward year), so the site
 could only show through 2026-27. This walks the 30 team pages, pulls each player's
 remaining contract years, matches them to our player ids, and adds the future years
 (> current season) to byPlayer / bySeason / range / payrollRank / teamPayroll.
@@ -49,7 +49,7 @@ def fut_entries(contract):
             continue
         v = int(s.get("salary", 0) or 0)
         if v > 0:
-            out[hh + 1] = v          # our season = HoopsHype start-year + 1
+            out[hh + 1] = v          # our season = salary-source start-year + 1
     return out
 
 

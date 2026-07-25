@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Build per-game box scores + season game indexes + per-player recent-game logs from
-the modern Kaggle NBA dataset (six-spins/data/raw2). Outputs:
+the modern public NBA dataset (six-spins/data/raw2). Outputs:
 
   data/games/<season>.json      index: every game (date, teams, score, type) for a season
   data/game/<gameId>.json       full detail: quarter scores, both box scores, officials, arena

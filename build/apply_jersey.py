@@ -3,7 +3,7 @@
 
 Appends the number a player wore that season for that franchise as index 7 of each roster
 entry [pid, name, pos, gp, pts, reb, ast, num]. Source: build/jersey_by_season.json
-(pid -> "season|abbr" -> num), harvested from BBR. Idempotent; re-run after the team files
+(pid -> "season|abbr" -> num), harvested from the reference source. Idempotent; re-run after the team files
 are rebuilt. Numbers surface on the team page's roster tables."""
 import json, os, glob
 

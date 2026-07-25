@@ -3,8 +3,8 @@
 
 fetch_salaries.py rebuilds salaries.json from the open source CSVs, which only run through the
 current season — so a rebuild drops the guaranteed future contract years (2027+) that were added
-separately. Those years originate from HoopsHype's team pages via patch_future_salaries.py, but
-HoopsHype's robots.txt now disallows automated access, so we do NOT re-fetch them here. Instead we
+separately. Those years originate from the current-salary source's team pages via patch_future_salaries.py, but
+the current-salary source's robots.txt now disallows automated access, so we do NOT re-fetch them here. Instead we
 carry the already-published future rows forward from the last committed salaries.json (git HEAD),
 which is where patch_future_salaries.py deposited them.
 
@@ -14,7 +14,7 @@ untouched. Recomputes range + teamPayroll/payrollRank for the restored future se
 Run order:  fetch_salaries.py  ->  (fix_salary_teams, apply_salary_overrides run inside it)  ->
             restore_future_salaries.py  ->  build_seo.py
 To genuinely refresh future contracts from source, run patch_future_salaries.py in an environment
-permitted to access HoopsHype, then commit — this script will carry that snapshot forward after.
+permitted to access the current-salary source, then commit — this script will carry that snapshot forward after.
 """
 import json, os, subprocess
 

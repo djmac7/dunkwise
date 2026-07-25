@@ -23,7 +23,7 @@ HARD, WARN = [], []
 def hard(msg): HARD.append(msg)
 def warn(msg): WARN.append(msg)
 
-# ---- anchors: exact, source-verified (Basketball-Reference) salaries for the seasons
+# ---- anchors: exact, source-verified (the reference source) salaries for the seasons
 # that were once inflated. If an upstream refresh re-breaks salaries, these drift first. ----
 SALARY_ANCHORS = {
     ("curryst01", 2018): 34682550, ("curryst01", 2021): 43006362,

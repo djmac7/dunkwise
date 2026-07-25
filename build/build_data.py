@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Dunkwise data pipeline.
-Reads the Kaggle NBA/ABA/BAA historical CSVs (via the six-spins checkout) and
+Reads the public historical NBA/ABA/BAA CSVs (via the six-spins checkout) and
 emits the static JSON the site loads on demand:
 
   data/meta.json              teams directory (colors/logos/conf) + season list
@@ -24,7 +24,7 @@ CUR   = os.path.join(SRC, "curated")
 OUT   = "/Users/d/claude-nba/data"
 
 # ---- current-franchise directory (colors, conference, official CDN codes) ----
-# espn logo code + nba.com team id (both official CDNs; either works)
+# the live source logo code + nba.com team id (both official CDNs; either works)
 TEAMS = {
  "ATL":("Atlanta","Hawks","East","#E03A3E","atl"),      "BOS":("Boston","Celtics","East","#007A33","bos"),
  "BKN":("Brooklyn","Nets","East","#5B6770","bkn"),       "CHA":("Charlotte","Hornets","East","#00788C","cha"),
@@ -109,7 +109,7 @@ tsum= pd.read_csv(f"{RAW}/Team Summaries.csv")
 fmvp= pd.read_csv(f"{CUR}/finals_mvp.csv")
 nbap= pd.read_csv(f"{RAW2}/Players.csv", low_memory=False)
 
-# Basketball-Reference uses PHO/BRK/CHO for the current Phoenix/Brooklyn/Charlotte
+# the reference source uses PHO/BRK/CHO for the current Phoenix/Brooklyn/Charlotte
 # franchises; normalize to the NBA tricodes our logos + team directory use.
 ALIAS = {"PHO": "PHX", "BRK": "BKN", "CHO": "CHA"}
 for _df in (pg, adv, tot):
@@ -124,7 +124,7 @@ except Exception:
     playoffs = pd.DataFrame(columns=["player_id", "season", "po_g", "po_mp", "po_pts", "po_fga", "po_fta", "po_ppg", "po_ts"])
 
 # Full (un-deduped) frames keep every team stint for a traded season, so player
-# pages can show the combined "2TM" line plus each team row (Basketball-Reference
+# pages can show the combined "2TM" line plus each team row (the reference source
 # style). The deduped frames (combined line only) drive leaders/careers/rosters.
 pgF, advF, totF = pg.copy(), adv.copy(), tot.copy()
 pg, adv, tot = dedup(pg), dedup(adv), dedup(tot)
@@ -494,8 +494,8 @@ for ab, (city, name, conf, color, code) in TEAMS.items():
 # names/colors for every historical abbr (for tags), current ones override
 names = {ab: name_for_abbr.get(ab, ab) for ab in all_abbr}
 for ab in TEAMS: names[ab] = teams_meta[ab]["full"]
-# former-franchise logos (NOH, SEA, VAN, …): basketball-reference hosts period,
-# season-specific marks; use each franchise's final season. Current teams keep ESPN.
+# former-franchise logos (NOH, SEA, VAN, …): the reference source hosts period,
+# season-specific marks; use each franchise's final season. Current teams keep the live source.
 BBREF_LOGO = "https://cdn.ssref.net/req/1/tlogo/bbr/{}-{}.png"
 last_by_abbr = {}
 for ab in all_abbr:

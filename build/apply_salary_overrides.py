@@ -5,7 +5,7 @@ Restore the source-verified salary corrections after a rebuild.
 build/fetch_salaries.py rebuilds data/salaries.json from public open CSVs. Some of
 those CSVs are inflation-adjusted (not nominal) for 2017-18 and 2020-21..2023-24, which
 once inflated star salaries ~20%. Rather than trust the CSVs for those seasons, we freeze
-the reconciled-against-Basketball-Reference values in build/salary-overrides.json and
+the reconciled-against-reference values in build/salary-overrides.json and
 re-apply them here, then recompute the derived structures. fetch_salaries.py calls this as
 its last step, so re-running the pipeline can no longer re-introduce the inflation.
 

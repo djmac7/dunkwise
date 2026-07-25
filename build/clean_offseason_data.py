@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """One-off reconciliation for the current offseason snapshot. Safe to re-run.
 
-(1) Teams: set each player's cur.team from the current ESPN roster they appear on
+(1) Teams: set each player's cur.team from the current the live source roster they appear on
     (data/team/*.json rosters are refreshed by fetch_live.rosters(), which reflects
     offseason trades — but it never wrote the new team back to the player files, so
     a traded player's masthead still showed his last on-court team, e.g. AD on DAL).
 
 (2) Injuries: rewrite data/injuries.json to keep only players genuinely sidelined by
-    injury. In the offseason ESPN's /injuries feed is mostly transaction/draft/rest
+    injury. In the offseason the live source's /injuries feed is mostly transaction/draft/rest
     news defaulted to "Day-To-Day"; those notes have nothing to do with an injury.
     We keep only entries whose note describes a real injury, normalise the status to
     "Out", and attach a short injury type.

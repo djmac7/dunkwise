@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turn the cached BBR player-page crawl (jersey numbers + nickname) into the durable,
+"""Turn the cached the reference source player-page crawl (jersey numbers + nickname) into the durable,
 committed build/player_bio.json. One-time harvest from an ephemeral crawl cache (see the
 bio crawler); apply_player_bio.py then merges it into the player records at build time.
 

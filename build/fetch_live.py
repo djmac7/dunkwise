@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Live refresh from ESPN's public JSON API -> data/*.json.
+Live refresh from the live source's public JSON API -> data/*.json.
 
-The bundled dataset is a fixed Kaggle snapshot that ends at the 2025-26 season.
-ESPN's public endpoints (site.api.espn.com) are reachable and, in this
+The bundled dataset is a fixed historical snapshot that ends at the 2025-26 season.
+The live source's public endpoints are reachable and, in this
 environment, report the same 2026 timeline as our data — so we can layer the
 freshest bits on top without conflicting with the historical set.
 
@@ -21,7 +21,7 @@ UA = {"User-Agent": "Mozilla/5.0 (DunkwiseBot; live refresh)"}
 SITE = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba"
 DRAFT_YEAR = 2026
 
-# ESPN uses a few different team abbreviations than we do.
+# the live source uses a few different team abbreviations than we do.
 ABBR = {"NY": "NYK", "SA": "SAS", "GS": "GSW", "UTAH": "UTA", "WSH": "WAS", "NO": "NOP", "PHO": "PHX"}
 def our_abbr(e): return ABBR.get(e, e)
 
@@ -76,16 +76,16 @@ def draft():
 
 
 def contracts():
-    """Refresh current+future contract years on data/salaries.json from ESPN rosters
-    (whose figures match the Spotrac / Basketball-Reference gold standard).
+    """Refresh current+future contract years on data/salaries.json from the live source rosters
+    (whose figures match the reference-source gold standard).
 
     Unlike the old add-only version this OVERWRITES future-year (> current season)
     figures and teams every run, so trades, re-signings and extensions actually
     propagate instead of freezing the first value ever seen. A rostered player's
     current team is applied to ALL of his future years — the whole guaranteed
-    contract travels with the player — which corrects the out-years ESPN doesn't
-    itemize. Long-term years ESPN omits keep their stored (Spotrac-aligned) figure,
-    so we never lose the far-out guaranteed money ESPN's short array can't see.
+    contract travels with the player — which corrects the out-years the live source doesn't
+    itemize. Long-term years the live source omits keep their stored (the contract reference-aligned) figure,
+    so we never lose the far-out guaranteed money the live source's short array can't see.
 
     Never touched: seasons <= current (completed/historical), careerEarn, and the
     all-time salary leaderboards (topAllTime / topAllTimeReal) — all defined as
@@ -102,7 +102,7 @@ def contracts():
         for pid, nm, ab, v in rows:
             stored_team[(pid, int(s))] = ab
 
-    # ---- pull ESPN: current team + each contract year (> CUR) per rostered player ----
+    # ---- pull the live source: current team + each contract year (> CUR) per rostered player ----
     espn_team, espn_year, matched = {}, {}, 0
     teams = get(f"{SITE}/teams")["sports"][0]["leagues"][0]["teams"]
     for t in teams:
@@ -177,12 +177,12 @@ def contracts():
 
 
 def rosters():
-    """Replace each team's roster with ESPN's current roster (reflects offseason
+    """Replace each team's roster with the live source's current roster (reflects offseason
     trades / signings). Stats come from each player's own cur line; unmatched
     incomers (rookies not yet in the historical set) are skipped."""
     search = json.load(open(os.path.join(DATA, "search.json")))
     meta_cur = json.load(open(os.path.join(DATA, "meta.json")))["current"]
-    # ESPN fullName -> our stored name, for players ESPN lists under a different form
+    # the live source fullName -> our stored name, for players the live source lists under a different form
     # (e.g. "Ronald Holland II" vs our "Ron Holland") so the roster match doesn't drop them.
     NAME_ALIAS = {"ronald holland": "ron holland"}
     idx, pid2name = {}, {}
@@ -326,7 +326,7 @@ def standings():
         print(f"standings: created new season {season} with {len(std)} teams")
 
 
-# In the offseason ESPN's /injuries feed is dominated by transaction / draft / rest
+# In the offseason the live source's /injuries feed is dominated by transaction / draft / rest
 # blurbs it defaults to "Day-To-Day" — notes that have nothing to do with an injury.
 # Keep only players genuinely sidelined by injury, normalise the status to "Out", and
 # tag the injury type. (Mirrored in build/clean_offseason_data.py.)
@@ -362,7 +362,7 @@ def _injury_type(note):
 
 
 def injuries():
-    """Current injury report from ESPN -> data/injuries.json (by player + by team).
+    """Current injury report from the live source -> data/injuries.json (by player + by team).
     Filtered to genuine injuries only; see _is_injury above."""
     meta = json.load(open(os.path.join(DATA, "meta.json")))
     name2ab = {v.get("full"): k for k, v in meta["teams"].items()}
@@ -393,7 +393,7 @@ def injuries():
 
 
 def odds():
-    """Game lines (spread / total / moneyline) from The Odds API -> data/odds.json.
+    """Game lines (spread / total / moneyline) from the odds provider -> data/odds.json.
     Free tier: set ODDS_API_KEY (the-odds-api.com). Keyed by AWAY@HOME (our abbrs)."""
     key = os.environ.get("ODDS_API_KEY")
     if not key:

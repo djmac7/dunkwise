@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Fetch the future draft-pick ledger from RealGM and rebuild data/draft_picks.json.
+"""Fetch the future draft-pick ledger from the draft source and rebuild data/draft_picks.json.
 
-RealGM sits behind a Cloudflare JS challenge, so plain HTTP (requests / curl /
+the draft source sits behind a bot protection JS challenge, so plain HTTP (requests / curl /
 curl_cffi / headless-shell) all get a 403 "Just a moment…" page. Only a *headful*
 real browser clears it — so this drives Playwright Chromium with a display
 (locally: a real window; in CI: `xvfb-run`). See [[draft-picks-source]].
 
 Pipeline:
-  RealGM page  →  extract tables (same JS the manual harvest used)
+  the draft source page  →  extract tables (same JS the manual harvest used)
                →  build/draft_picks_raw.json  →  build_draft_picks.py  →  data/draft_picks.json
 
 Safety: refuses to overwrite when it can't scrape all 30 teams, so a blocked run
-(e.g. Cloudflare flagging a datacenter IP) leaves the last-good data in place and
+(e.g. bot protection flagging a datacenter IP) leaves the last-good data in place and
 exits non-zero instead of shipping an empty ledger.
 
 Requirements (once):  pip install playwright  &&  playwright install chromium
@@ -26,7 +26,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RAW = os.path.join(HERE, "draft_picks_raw.json")
 URL = "https://basketball.realgm.com/nba/draft/future_drafts/team"
 
-# Extraction runs in the page: map team names → BBR abbrs, normalise RealGM's abbr
+# Extraction runs in the page: map team names → the reference source abbrs, normalise the draft source's abbr
 # tokens to the site's, and split each cell into {n, note, total}. Kept in sync with
 # the one-off browser harvest that seeded the data.
 EXTRACT_JS = r"""
@@ -80,14 +80,14 @@ def scrape():
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         # Headful is required — headless Chromium is fingerprinted and stuck on the
-        # Cloudflare challenge. In CI, wrap the whole command in `xvfb-run`.
+        # bot protection challenge. In CI, wrap the whole command in `xvfb-run`.
         browser = p.chromium.launch(headless=False, args=["--disable-blink-features=AutomationControlled"])
         ctx = browser.new_context(
             user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
             viewport={"width": 1280, "height": 900})
         page = ctx.new_page()
         page.goto(URL, wait_until="domcontentloaded", timeout=45000)
-        # give the Cloudflare interstitial up to ~30s to auto-clear
+        # give the bot protection interstitial up to ~30s to auto-clear
         teams = {}
         for _ in range(30):
             teams = page.evaluate(EXTRACT_JS)
@@ -106,7 +106,7 @@ def main():
         return 1
     if len(teams) < EXPECT_TEAMS:
         print(f"fetch_draft_picks: only {len(teams)}/{EXPECT_TEAMS} teams "
-              f"(Cloudflare block?) — keeping existing data, not overwriting.", file=sys.stderr)
+              f"(bot protection block?) — keeping existing data, not overwriting.", file=sys.stderr)
         return 1
     json.dump(teams, open(RAW, "w"), ensure_ascii=False)
     print(f"fetch_draft_picks: harvested {len(teams)} teams → {os.path.relpath(RAW)}")

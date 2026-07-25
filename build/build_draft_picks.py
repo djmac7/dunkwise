@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """Build data/draft_picks.json — the future draft-pick ledger for all 30 teams.
 
-Source: RealGM "NBA Future Draft Picks By Team"
+Source: the draft source "NBA Future Draft Picks By Team"
         https://basketball.realgm.com/nba/draft/future_drafts/team
-RealGM is the ground truth for pick ownership (own picks, incoming picks from
+the draft source is the ground truth for pick ownership (own picks, incoming picks from
 trades, swap rights and protections) — it's re-scraped into build/draft_picks_raw.json,
 which this script normalises into the site's shape.
 
-The raw harvest (build/draft_picks_raw.json) keeps RealGM's per-team / per-year
+The raw harvest (build/draft_picks_raw.json) keeps the draft source's per-team / per-year
 first- and second-round cells. Each cell is {n, note, total}:
-  n     — pick count as RealGM shows it ("1", "0", "1 + 2"): guaranteed + conditional
+  n     — pick count as the draft source shows it ("1", "0", "1 + 2"): guaranteed + conditional
   note  — the plain-language description of which picks (already abbr-normalised to
           the site's convention: SAN→SAS, GOS→GSW, BRK→BKN, PHL→PHI, UTH→UTA)
   total — n summed to a single integer, for headline counts
 
-Re-harvest is automated by fetch_draft_picks.py (headful Playwright — RealGM 403s
+Re-harvest is automated by fetch_draft_picks.py (headful Playwright — the draft source 403s
 every non-browser fetch), which rewrites draft_picks_raw.json and calls this. The
 refresh-picks GitHub Action runs it weekly. Rerun build_seo.py afterwards (or just
 the team pages) so the static SEO pages pick up the new ledger.

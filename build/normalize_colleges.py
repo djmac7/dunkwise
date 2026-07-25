@@ -1,6 +1,6 @@
 """Canonical college names.
 
-Basketball-Reference gives the college field as a single free-text string that
+the reference source gives the college field as a single free-text string that
 packs a player's whole school history into one comma-separated run:
 
     "Blinn College, Brown Mackie College, Houston"
@@ -84,7 +84,7 @@ def _canon(name):
 
 
 def normalize(raw):
-    """(primary, schools) for a raw BBR college string.
+    """(primary, schools) for a raw the reference source college string.
 
     Returns (None, []) for empty input. `schools` preserves the source order
     (earliest school first); `primary` is the last entry.

@@ -5,16 +5,16 @@ datasets (salaries are facts, not copyrightable). Figures are nominal (not
 inflation adjusted). Coverage: 1990-91 through the current season + future deals.
 
 Sources (precedence high->low per player-season):
-  1. erikgregorywebb/datasets  nba-salaries.csv   — 2000-2020, has team (full name)
-  2. edwinjeon/NBA-Salary-Prediction  "NBA Player Stats and Salaries_2010-2025.csv"
+  1. a public salary dataset  nba-salaries.csv   — 2000-2020, has team (full name)
+  2. a public salary dataset  "NBA Player Stats and Salaries_2010-2025.csv"
        — 2010-2025, team as tricode; used to fill 2021-2025 with team info
-  3. edwinjeon/NBA-Salary-Prediction  "NBA Player Salaries_2000-2025.csv"
+  3. a public salary dataset  "NBA Player Salaries_2000-2025.csv"
        — 2000-2025, no team; backfills any 2021-2025 player-season missing above
-  4. datadavis2/nbasalaries  NBASalaries1990to2016.csv (from Basketball-Reference)
+  4. a public salary dataset  NBASalaries1990to2016.csv (from the reference source)
        — season-gated to the pre-2000 gap (1991-1999); team dropped, re-derived from logs
 
-We deliberately do NOT scrape Spotrac (its ToS forbids automated scraping and its
-contract database is a licensed commercial product). HoopsHype's /salaries/ is
+We deliberately do NOT scrape the contract reference (its ToS forbids automated scraping and its
+contract database is a licensed commercial product). the current-salary source's /salaries/ is
 robots-allowed and is a fine manual top-up source if you ever need the in-progress
 season; drop a CSV at build/nba-salaries-current.csv (name,team,season,salary) and
 it will be merged in as source 0 (highest precedence).
@@ -32,7 +32,7 @@ DATA = os.path.join(HERE, "..", "data")
 SRC_ERIK = "https://raw.githubusercontent.com/erikgregorywebb/datasets/master/nba-salaries.csv"
 SRC_STATSAL = "https://raw.githubusercontent.com/edwinjeon/NBA-Salary-Prediction/main/data/NBA%20Player%20Stats%20and%20Salaries_2010-2025.csv"
 SRC_SALONLY = "https://raw.githubusercontent.com/edwinjeon/NBA-Salary-Prediction/main/data/NBA%20Player%20Salaries_2000-2025.csv"
-# Historical backfill: per-team salaries 1990-91 → 2015-16, sourced from Basketball-Reference.
+# Historical backfill: per-team salaries 1990-91 → 2015-16, sourced from the reference source.
 # We use it only for the pre-2000 gap (1991-1999) below our other sources' floor; verified
 # against known-true figures (Jordan 1997-98 = $33.14M to the dollar). Team names are dropped
 # on ingest — attribution is re-derived stint-accurately from player logs in fix_salary_teams.py.
@@ -124,7 +124,7 @@ if os.path.exists(LOCAL_CURRENT):
             add(r.get("name", ""), s, sal, team_from_tricode(r.get("team", "")) or team_from_name(r.get("team", "")), 0)
             counts["current"] += 1
 
-# source 1: erikgregorywebb 2000-2020 (authoritative, has team full-name)
+# source 1: public dataset, 2000-2020 (authoritative, has team full-name)
 for r in rows_of(fetch(SRC_ERIK, LOCAL_ERIK)):
     s, sal = to_int(r.get("season")), to_int(r.get("salary"))
     if s and sal:
@@ -234,10 +234,10 @@ print("wrote data/salaries.json")
 import subprocess, sys
 subprocess.run([sys.executable, os.path.join(HERE, "fix_salary_teams.py")], check=True)
 # IMPORTANT: some upstream CSVs are inflation-adjusted (not nominal) for 2017-18 and
-# 2020-21..2023-24. Re-apply the Basketball-Reference-verified figures last so a rebuild
+# 2020-21..2023-24. Re-apply the reference-source-verified figures last so a rebuild
 # can never re-introduce the ~20% salary inflation. (See build/apply_salary_overrides.py.)
 subprocess.run([sys.executable, os.path.join(HERE, "apply_salary_overrides.py")], check=True)
-# Apply Basketball-Reference-verified per-team salary splits (dead-money re-attribution for
+# Apply reference-source-verified per-team salary splits (dead-money re-attribution for
 # bought-out vets) + 2025-26 fills. Must run after overrides so it splits corrected totals.
 subprocess.run([sys.executable, os.path.join(HERE, "apply_salary_splits.py")], check=True)
 # NOTE: run build/restore_future_salaries.py after this to re-attach 2027+ contract years.

@@ -5,7 +5,7 @@
 (function () {
   const V = "49";
   // Injury report is hidden site-wide until we have reliable, injury-specific data for
-  // every player (the ESPN feed is offseason transaction noise). Flip to true to restore.
+  // every player (the live feed is offseason transaction noise). Flip to true to restore.
   const SHOW_INJURIES = false;
   // Betting / slate section hidden for now (legal/age-gating review pending). Flip to true to restore;
   // the nav links live in index.html (search "data-route=\"betting\"").
@@ -217,7 +217,7 @@
   };
   function teamLogo(ab, size = "md", season, override) {
     const m = tMeta(ab), color = tColor(ab), mono = `<span class="ava-mono" style="background:${color};color:${textOn(color)}">${esc(ab)}</span>`;
-    // current franchises use their ESPN logo; defunct/former franchises (NOH, SEA, …)
+    // current franchises use their live logo; defunct/former franchises (NOH, SEA, …)
     // use their period logo from basketball-reference, season-specific when we know it.
     // An explicit override wins over both (former identities that reuse a live abbr).
     let url = override || (m && m.logo) || (META.histLogos && META.histLogos[ab]) || null;
@@ -640,34 +640,6 @@
       ["Your choices", "You can clear stored preferences by clearing your browser data. You can also use your browser or device privacy controls to limit tracking."],
       ["Changes", "We may update this policy periodically. Material changes will be reflected by updating the date on this page."],
     ]);
-  }
-  async function renderSources() {
-    setSEO("Data & Sources", "Where Dunkwise's numbers come from, and how every figure is checked before it ships.");
-    let refreshed = "";
-    try { const st = await getStatus(); if (st && st.refreshed) refreshed = fmtDate(st.refreshed.slice(0, 10), true); } catch (e) {}
-    const src = (name, url, what) => `<li><a class="link" href="${url}" target="_blank" rel="noopener">${esc(name)}</a> — ${what}</li>`;
-    app.innerHTML = `<div class="wrap page" style="max-width:760px">
-      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Data &amp; sources</span></div>
-      <div class="section-title"><div><span class="eyebrow">Data &amp; methodology</span><h2>Data &amp; sources</h2></div></div>
-      <div class="legal">
-        <p>Accuracy is the point of Dunkwise. Every figure is compiled from public, authoritative sources and cross-checked before it ships. This page lists exactly where the numbers come from and how they're verified.${refreshed ? ` Live data was last refreshed <b>${refreshed}</b>.` : ""}</p>
-        <h3>Sources</h3>
-        <ul class="src-list">
-          ${src("Basketball-Reference", "https://www.basketball-reference.com", "the reference standard for career stats, contracts and salaries — the source of truth we reconcile salary figures against")}
-          ${src("ESPN", "https://www.espn.com/nba/", "live scores, standings, box scores, team logos and player headshots for the current season")}
-          ${src("Public historical box-score data", "https://www.kaggle.com/datasets?search=nba", "game-by-game box scores forming the base layer, from 1947 through the 2025-26 season")}
-          ${src("U.S. Bureau of Labor Statistics", "https://www.bls.gov/cpi/", "CPI-U figures used to restate historical salaries in today's dollars")}
-        </ul>
-        <h3>How salaries are checked</h3>
-        <p>Salaries are nominal (not inflation-adjusted) and reconciled player-by-player against Basketball-Reference. Team totals are the sum of each player's cap figure — a waived or bought-out player still counts toward his final team, so a total is not a live cap-sheet number.</p>
-        <h3>How the data stays correct</h3>
-        <p>Every refresh runs an automated integrity gate before it can publish: player points must add up to the team score, made shots can't exceed attempts, quarter lines must total the final, and known-correct salary anchors must not move. A refresh that fails any check is blocked rather than shipped.</p>
-        <h3>Corrections</h3>
-        <p>If you spot something wrong, we want to know — accuracy reports are the most useful feedback we get. Reach us through the contact options in the app.</p>
-        <h3>Attribution</h3>
-        <p>Team names, logos, player likenesses and league marks are the property of their respective owners and are used here for identification and reference only. Dunkwise is an independent project and is not affiliated with, endorsed by, or sponsored by any league or team.</p>
-      </div>
-    </div>`;
   }
 
   /* ================= PLAYOFF BRACKET ================= */
@@ -1737,7 +1709,7 @@
       </div>`;
   }
 
-  // Sticky in-page section nav (ESPN-style tabs, but everything stays on one
+  // Sticky in-page section nav (tabbed style, but everything stays on one
   // crawlable page). Smooth-scrolls to sections, highlights the active one, and
   // prunes links whose async section never filled.
   function wireJumpNav() {
@@ -2417,7 +2389,7 @@
     const seasonRoster = rbsAll[selSeason];
     const displayRoster = seasonRoster || t.roster || [];
     const rosterExact = !!seasonRoster || selSeason === rosterSeason;
-    // `t.roster` is refreshed live from ESPN, which switches to the UPCOMING roster as
+    // `t.roster` is refreshed from the live feed, which switches to the UPCOMING roster as
     // soon as the offseason starts — so it is not "this season's roster" year-round.
     // Keep it, but only ever show it under its own heading (see the next-season card).
     const liveRoster = t.roster || [];
@@ -2440,7 +2412,7 @@
     // standings key off the era abbr (season files), games may use either the era or the modern abbr
     const isUs = (x) => x === seasonAb || x === ab;
     if (latest) { try { const gidx = await getGamesIdx(latest.season); seasonGames = (gidx.games || []).filter((g) => isUs(g.a) || isUs(g.h)).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)); } catch {} }
-    // Season finished and we're past it — so the live ESPN roster is next season's.
+    // Season finished and we're past it — so the live roster is next season's.
     const lastGameDate = seasonGames.length ? seasonGames[seasonGames.length - 1].date : null;
     const seasonOver = lastGameDate ? (Date.now() - new Date(lastGameDate + "T12:00:00Z").getTime()) / 86400000 > 10 : false;
     const showNextRoster = seasonOver && selSeason === rosterSeason && liveNewcomers.length > 0;
@@ -2752,7 +2724,7 @@
     const active = PT.q || PT.filters.length || (s && (s.k !== d.k || s.dir !== d.dir));
     const base = "#/" + PT.basePath;
     if (!active) { if (location.hash !== base) history.replaceState(null, "", base); return; }
-    const payload = { q: PT.q || undefined, f: PT.filters.length ? PT.filters : undefined, s: PT.sort, c: colsCustom ? PT.visCols : undefined };
+    const payload = { q: PT.q || undefined, f: PT.filters.length ? PT.filters : undefined, j: PT.join === "or" ? "or" : undefined, s: PT.sort, c: colsCustom ? PT.visCols : undefined };
     history.replaceState(null, "", base + "?v=" + encodeURIComponent(JSON.stringify(payload)));
   }
   const ptCol = (k) => PT.cfg.cols.find((c) => c.k === k);
@@ -2791,24 +2763,28 @@
     if (f.op === "between") return `${c.label} ${ptFmtVal(c, f.vals[0])}–${ptFmtVal(c, f.vals[1])}`;
     return `${c.label} ${OPLABEL[f.op]} ${ptFmtVal(c, f.vals[0])}`;
   }
-  function ptMatch(r) {
-    if (PT.q && !PT.cfg.search(r, PT.q.toLowerCase())) return false;
-    for (const f of PT.filters) {
-      const c = ptCol(f.k);
-      if (c.match) { if (!c.match(r, f)) return false; continue; }
-      const v = ptGet(c, r);
-      if (c.type === "enum") { if (!f.vals.includes(v)) return false; }
-      else if (c.type === "bool") { if ((v ? 1 : 0) !== f.vals[0]) return false; }
-      else if (c.type === "date") { if (!v || v < f.vals[0] || v > f.vals[1]) return false; }
-      else {
-        if (v == null) return false;
-        if (f.op === "gte" && !(v >= f.vals[0])) return false;
-        if (f.op === "lte" && !(v <= f.vals[0])) return false;
-        if (f.op === "eq" && !(v === f.vals[0])) return false;
-        if (f.op === "between" && !(v >= f.vals[0] && v <= f.vals[1])) return false;
-      }
-    }
+  // does a single filter match a row? (the per-condition test, combinator-agnostic)
+  function ptFilterMatch(r, f) {
+    const c = ptCol(f.k);
+    if (!c) return true;                       // unknown key (e.g. stale shared URL) — ignore
+    if (c.match) return c.match(r, f);
+    const v = ptGet(c, r);
+    if (c.type === "enum") return f.vals.includes(v);
+    if (c.type === "bool") return (v ? 1 : 0) === f.vals[0];
+    if (c.type === "date") return !!v && v >= f.vals[0] && v <= f.vals[1];
+    if (v == null) return false;
+    if (f.op === "gte") return v >= f.vals[0];
+    if (f.op === "lte") return v <= f.vals[0];
+    if (f.op === "eq") return v === f.vals[0];
+    if (f.op === "between") return v >= f.vals[0] && v <= f.vals[1];
     return true;
+  }
+  function ptMatch(r) {
+    // text search is always a separate AND gate (Linear keeps search out of the filter group)
+    if (PT.q && !PT.cfg.search(r, PT.q.toLowerCase())) return false;
+    if (!PT.filters.length) return true;
+    // the group's combinator: "or" → any condition matches, else "and" → every one must
+    return PT.join === "or" ? PT.filters.some((f) => ptFilterMatch(r, f)) : PT.filters.every((f) => ptFilterMatch(r, f));
   }
   function ptResults() {
     const rows = PT.data.filter(ptMatch);
@@ -2984,11 +2960,19 @@
       ? `<b>${n.toLocaleString()}</b> of ${total.toLocaleString()} ${esc(PT.cfg.nounPl)}`
       : `${n.toLocaleString()} ${esc(n === 1 ? PT.cfg.noun : PT.cfg.nounPl)}`;
     const more = $("#ptMore"); if (more) more.hidden = rows.length <= PT.shown;
-    const c2 = $("#ptClear2"); if (c2) c2.addEventListener("click", (e) => { e.preventDefault(); PT.q = ""; PT.filters = []; const qi = $("#ptQ"); if (qi) qi.value = ""; ptRerender(); });
+    const c2 = $("#ptClear2"); if (c2) c2.addEventListener("click", (e) => { e.preventDefault(); PT.q = ""; PT.filters = []; PT.join = "and"; const qi = $("#ptQ"); if (qi) qi.value = ""; ptRerender(); });
   }
   function ptRerender() {
     // pills — clicking the body edits, clicking the ✕ removes
-    $("#ptPills").innerHTML = PT.filters.map((f, i) => `<button class="pt-pill" data-i="${i}" title="Edit filter">${esc(ptPillText(f))}<span class="x" data-rm="${i}" role="button" aria-label="Remove filter"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button>`).join("");
+    // Between pills sits the group combinator: the first gap is a clickable and/or toggle,
+    // the rest mirror it as static text (Linear-style — one combinator governs the whole group).
+    const joinWord = PT.join === "or" ? "or" : "and";
+    $("#ptPills").innerHTML = PT.filters.map((f, i) => {
+      const conn = i === 0 ? "" : i === 1
+        ? `<button class="pt-join" data-join type="button" title="Match all filters (and) or any (or)" aria-label="Switch between matching all or any filters">${joinWord}</button>`
+        : `<span class="pt-join pt-join-static" aria-hidden="true">${joinWord}</span>`;
+      return `${conn}<button class="pt-pill" data-i="${i}" title="Edit filter">${esc(ptPillText(f))}<span class="x" data-rm="${i}" role="button" aria-label="Remove filter"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button>`;
+    }).join("");
     $("#ptReset").hidden = !(PT.filters.length || PT.q);
     const badge = $("#ptAddBadge"); if (badge) { badge.textContent = PT.filters.length || ""; badge.hidden = !PT.filters.length; }
     const add = $("#ptAdd"); if (add) add.classList.toggle("on", !!PT.filters.length);
@@ -2996,6 +2980,8 @@
     $$("#ptHead th[data-k]").forEach((th) => { const on = th.dataset.k === PT.sort.k; th.classList.toggle("sorted", on); th.setAttribute("aria-sort", on ? (PT.sort.dir < 0 ? "descending" : "ascending") : "none"); });
     const rows = ptResults();
     ptRenderBody(rows);
+    const jt = $("#ptPills .pt-join[data-join]");
+    if (jt) jt.addEventListener("click", () => { PT.join = PT.join === "or" ? "and" : "or"; ptRerender(); });
     $$("#ptPills .pt-pill").forEach((p) => p.addEventListener("click", (e) => {
       const rm = e.target.closest("[data-rm]");
       if (rm) { PT.filters.splice(+rm.dataset.rm, 1); ptRerender(); return; }
@@ -3147,12 +3133,13 @@
 
   // Build the toolbar + table into `host` for the given config + rows, and wire all interaction.
   function ptMount(host, cfg, data) {
-    PT = { cfg, data, q: "", filters: [], sort: { ...cfg.defaultSort }, shown: 80, io: null, basePath: location.hash.replace(/^#\/?/, "").split("?")[0] };
+    PT = { cfg, data, q: "", filters: [], join: "and", sort: { ...cfg.defaultSort }, shown: 80, io: null, basePath: location.hash.replace(/^#\/?/, "").split("?")[0] };
     // restore a shared/bookmarked filter state (keys that don't exist in this table are dropped)
     let urlCols = null;
     if (PT_URLSTATE) {
       if (PT_URLSTATE.q) PT.q = PT_URLSTATE.q;
       if (Array.isArray(PT_URLSTATE.f)) PT.filters = PT_URLSTATE.f.filter((f) => f && ptCol(f.k));
+      if (PT_URLSTATE.j === "or") PT.join = "or";
       if (PT_URLSTATE.s && ptCol(PT_URLSTATE.s.k)) PT.sort = PT_URLSTATE.s;
       if (Array.isArray(PT_URLSTATE.c)) urlCols = PT_URLSTATE.c;
       PT_URLSTATE = null;
@@ -3179,7 +3166,7 @@
     let qt; q.addEventListener("input", () => { clearTimeout(qt); qt = setTimeout(() => { PT.q = q.value.trim(); PT.shown = 80; ptRerender(); }, 140); });
     $("#ptAdd").addEventListener("click", (e) => { e.stopPropagation(); ptOpenMenu($("#ptAdd")); });
     $("#ptCols").addEventListener("click", (e) => { e.stopPropagation(); ptOpenCols($("#ptCols")); });
-    $("#ptReset").addEventListener("click", () => { PT.q = ""; PT.filters = []; q.value = ""; ptRerender(); });
+    $("#ptReset").addEventListener("click", () => { PT.q = ""; PT.filters = []; PT.join = "and"; q.value = ""; ptRerender(); });
     $("#ptShare").addEventListener("click", (e) => {
       const btn = e.currentTarget, label = $(".pt-share-t", btn);
       const done = () => { btn.classList.add("ok"); label.textContent = "Copied!"; setTimeout(() => { btn.classList.remove("ok"); label.textContent = "Copy link"; }, 1600); };
@@ -3720,7 +3707,6 @@
       else if (seg === "settings") { await renderHome(); openSettings(); }
       else if (seg === "terms") renderTerms();
       else if (seg === "privacy") renderPrivacy();
-      else if (seg === "sources") await renderSources();
       else if (seg === "article") await renderArticle(arg);
       else if (seg === "games") await (arg === "player" ? renderPlayerGames(parts[2]) : renderGames(arg));
       else if (seg === "game") await renderGame(arg);

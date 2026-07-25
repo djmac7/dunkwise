@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Merge build/player_bio.json (BBR-sourced jersey numbers + nicknames) into the player
+"""Merge build/player_bio.json (reference-sourced jersey numbers + nicknames) into the player
 records: bio.num (primary/most-worn number), bio.numbers (all NBA numbers worn), bio.nickname.
 
 Idempotent; re-run after build_data.py (which rebuilds player files from the source CSVs and
@@ -14,7 +14,7 @@ if not os.path.exists(BIO):
     print("no player_bio.json — nothing to apply"); raise SystemExit
 
 bio = json.load(open(BIO))
-# curated marquee nicknames (King James, The Black Mamba, …) fill/override the ones BBR lacks
+# curated marquee nicknames (King James, The Black Mamba, …) fill/override the ones the reference source lacks
 CUR = os.path.join(HERE, "curated_nicknames.json")
 curated = json.load(open(CUR)) if os.path.exists(CUR) else {}
 pids = set(bio) | set(curated)

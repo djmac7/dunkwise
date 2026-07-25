@@ -2,7 +2,7 @@
 """
 Add per-season rosters to each data/team/<abbr>.json.
 
-The team files ship a single `roster` (the latest season — refreshed live from ESPN for
+The team files ship a single `roster` (the latest season — refreshed live from the live source for
 active teams). Historical season views (#/team/CLE/2025) had no season-specific roster, so
 they showed the latest roster mislabelled. This backfills `rostersBySeason` for every PAST
 season from the shipped player logs, which are stint-accurate (a traded player appears on
@@ -10,7 +10,7 @@ each team he actually played for, never the combined 2TM line) — matching the 
 convention the rest of the site uses.
 
 Reads only already-published data (data/player/*.json + data/team/*.json), so it runs
-without the raw Kaggle CSVs. Idempotent: re-run any time after a player-data rebuild.
+without the raw a public historical dataset CSVs. Idempotent: re-run any time after a player-data rebuild.
 
 log row layout (see build_data.py):
   [0 season, 1 lg, 2 team, 3 age, 4 g, 5 mp, 6 fg%, 7 3p%, 8 ft%,
@@ -49,7 +49,7 @@ for tf in glob.glob(os.path.join(DATA, "team", "*.json")):
     out = {}
     for season, rows in by_season.items():
         # Every season, including the most recent. The live `roster` used to stand in
-        # for the latest one, but ESPN serves the *upcoming* roster once the offseason
+        # for the latest one, but the live source serves the *upcoming* roster once the offseason
         # starts — so in July the finished 2025-26 page was listing 2026-27 signings
         # (Jaylen Brown on PHI) beside their 2025-26 stats. Log-derived rows are the
         # players who actually appeared for the team that season, which is what a

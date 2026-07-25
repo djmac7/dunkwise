@@ -2,7 +2,7 @@
 """
 Precompute per-player game logs, splits and full playoff box scores from the
 per-game box-score source (raw2/PlayerStatistics.csv — full history, 1946→today,
-with a gameType flag). The season-level Kaggle CSVs the main pipeline uses have no
+with a gameType flag). The season-level a public historical dataset CSVs the main pipeline uses have no
 per-game data, so this is the only source for:
 
   - current-season game log (every game, full box)

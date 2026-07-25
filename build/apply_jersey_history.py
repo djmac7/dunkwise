@@ -3,7 +3,7 @@
 
 bio.numbers is only a flat list ("23", "6"), so the player page could do no
 better than "#23 +1" behind a tooltip — invisible on a phone, and it never said
-WHEN a number was worn. Basketball-Reference lists jersey numbers with their
+WHEN a number was worn. the reference source lists jersey numbers with their
 seasons; this builds the same thing, plus the team, from the per-season data in
 build/jersey_by_season.json (pid -> "season|abbr" -> number).
 

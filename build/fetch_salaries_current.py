@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Top up the current season's salaries from HoopsHype (robots-allowed /salaries/
+Top up the current season's salaries from the current-salary source (robots-allowed /salaries/
 and /player/ paths), in two polite passes:
 
   Pass 1 — 30 team pages (/salaries/<full_name_underscored>/): each embeds its
@@ -10,7 +10,7 @@ and /player/ paths), in two polite passes:
            i.e. offseason team-changers and extension signees whose current-team
            contract row no longer lists the just-completed season.
 
-Season convention: HoopsHype labels seasons by START year (their 2025 = 2025-26);
+Season convention: the current-salary source labels seasons by START year (their 2025 = 2025-26);
 our data uses END year (our 2026 = 2025-26). So our_season = hoopshype_season + 1.
 
 Output: build/nba-salaries-current.csv (name,team,season,salary), consumed as the
@@ -31,7 +31,7 @@ DELAY = 0.6
 
 meta = json.load(open(os.path.join(DATA, "meta.json")))
 CUR = meta["current"]            # our end-year season (e.g. 2026)
-HH = CUR - 1                      # matching HoopsHype start-year (e.g. 2025)
+HH = CUR - 1                      # matching salary-source start-year (e.g. 2025)
 search = json.load(open(os.path.join(DATA, "search.json")))
 season_cur = json.load(open(os.path.join(DATA, "season", f"{CUR}.json")))
 ACTIVE_ABBR = [r["abbr"] for r in season_cur["standings"]]
@@ -54,12 +54,12 @@ def next_data(html):
     m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.S)
     return json.loads(m.group(1)) if m else None
 
-# ---- team name -> our abbr (for mapping HoopsHype teamIDs) ----
+# ---- team name -> our abbr (for mapping the salary source's teamIDs) ----
 name_to_abbr = {norm(nm): ab for ab, nm in meta["names"].items()}
 name_to_abbr.update({norm(full_of[ab]): ab for ab in full_of})
 
 def build_teamid_map(nd):
-    """From a player page's teams query -> {hoopshype teamID: our abbr}."""
+    """From a player page's teams query -> {salary-source teamID: our abbr}."""
     out = {}
     for item in nd["props"]["pageProps"].get("dehydratedState", {}).get("queries", []):
         data = item.get("state", {}).get("data", {})
@@ -90,7 +90,7 @@ def cur_season_entry(contract):
 
 def fut_entries(contract):
     """All contract years from the current season forward -> {our_season: salary}
-    (our_season = HoopsHype start-year + 1). Captures the ENTIRE remaining contract,
+    (our_season = the current-salary source start-year + 1). Captures the ENTIRE remaining contract,
     not just the current season, so the site can show future guaranteed money."""
     out = {}
     for s in contract.get("seasons", []):
@@ -125,7 +125,7 @@ for ab in ACTIVE_ABBR:
 print(f"  captured {len(rows)} players from team rosters")
 
 # ---------------- Pass 2: per-player pages for the rest ----------------
-# HoopsHype throttles rapid bursts (returns a fallback index page with no
+# the current-salary source throttles rapid bursts (returns a fallback index page with no
 # contractsSalariesSinglePlayer query), so we go slow and DETECT the fallback to
 # distinguish "wrong slug / throttled" from "genuinely no tracked salary".
 DELAY_PLAYER = 1.3

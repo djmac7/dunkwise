@@ -2,10 +2,10 @@
 """
 Import NBA 2K player ratings -> data/twok.json.
 
-Source: the freely-published GitHub dataset MikeYan01/nba2k-player-ratings
+Source: a freely-published public GitHub ratings dataset
 (data/league.json), which itself aggregates the public 2K ratings. We pull the
-already-published JSON rather than scraping 2kratings.com directly (that host
-returns 403 to automated clients — Cloudflare-style bot protection). This keeps
+already-published JSON rather than scraping the ratings site directly (that host
+returns 403 to automated clients — bot protection). This keeps
 us to a plain, permitted data download.
 
 Ratings are keyed to our own player ids by name match (accent/suffix-insensitive,

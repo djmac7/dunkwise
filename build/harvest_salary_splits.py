@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Turn cached Basketball-Reference player salary tables into build/salary-splits.json.
+Turn cached the reference source player salary tables into build/salary-splits.json.
 
-Provenance / one-time harvest: BBR player pages are fetched separately (respecting the 3s
+Provenance / one-time harvest: the reference source player pages are fetched separately (respecting the 3s
 crawl-delay) into a cache dir, one JSON per player of [ [season,"Team Name",amount], ... ].
 This reads that cache + our current data and emits two kinds of correction:
 
-  * dead-money split — a season our data files under ONE team but BBR shows split across
-    several, where our attributed team's real (BBR) share is < half the total. The player was
-    bought out and signed a minimum elsewhere; we replace the single row with BBR's exact
+  * dead-money split — a season our data files under ONE team but the reference source shows split across
+    several, where our attributed team's real (the reference source) share is < half the total. The player was
+    bought out and signed a minimum elsewhere; we replace the single row with the reference source's exact
     per-team figures so no min-signing shows as a team's top earner.
-  * 2025-26 fill — a player who logged 2025-26 minutes but has no salary yet; add BBR's figure.
+  * 2025-26 fill — a player who logged 2025-26 minutes but has no salary yet; add the reference source's figure.
 
 Output format (consumed by apply_salary_splits.py):  {pid: {season: [[abbr, amount], ...]}}
 """
@@ -22,7 +22,7 @@ CACHE = sys.argv[1] if len(sys.argv) > 1 else "/tmp/bbr_salaries"
 CURRENT = 2026  # 2025-26 season key
 
 meta = json.load(open(os.path.join(DATA, "meta.json")))
-# BBR full team name -> our abbr (modern era; 2016-2026 all use current names)
+# the reference source full team name -> our abbr (modern era; 2016-2026 all use current names)
 NAME2AB = {
     "atlanta hawks": "ATL", "boston celtics": "BOS", "brooklyn nets": "BKN",
     "charlotte hornets": "CHA", "charlotte bobcats": "CHA", "chicago bulls": "CHI",
@@ -59,7 +59,7 @@ for s, rows in bs.items():
     for pid, nm, ab, amt in rows:
         ours.setdefault((pid, int(s)), []).append((ab, amt))
 # game-log teams per player per season (abbr -> games): the teams a player actually suited up
-# for. A salary BBR files under a team NOT in this set is dead money (a former team's guaranteed
+# for. A salary the reference source files under a team NOT in this set is dead money (a former team's guaranteed
 # money after a buyout / stretch). Used for both the 2025-26 fill test and dead-money detection.
 log_by = {}  # pid -> season -> {abbr: games}
 for f in glob.glob(os.path.join(DATA, "player", "*.json")):
@@ -85,7 +85,7 @@ for fp in glob.glob(os.path.join(CACHE, "*.json")):
         continue
     if not isinstance(rows, list):
         continue
-    # group BBR rows by end-year season -> {abbr: amount}
+    # group the reference source rows by end-year season -> {abbr: amount}
     by_season = {}
     for season, team, amt in rows:
         tn = team.strip().lower()
@@ -107,7 +107,7 @@ for fp in glob.glob(os.path.join(CACHE, "*.json")):
             # 2025-26 fill for a player who actually played but has no salary row
             if yr == CURRENT and pid in played_cur and bbr_total > 0:
                 logset = cur_log.get(pid, {})
-                # if NONE of BBR's teams are teams our game data shows him on (a trade/discrepancy),
+                # if NONE of the reference source's teams are teams our game data shows him on (a trade/discrepancy),
                 # trust our games: attribute the whole figure to his primary (most-GP) 2025-26 team.
                 if logset and not (set(parts) & set(logset)):
                     primary = max(logset, key=logset.get)
@@ -117,9 +117,9 @@ for fp in glob.glob(os.path.join(CACHE, "*.json")):
                 splits.setdefault(pid, {})[str(yr)] = entry
                 n_fill += 1
             continue
-        # existing player-season BBR shows split across teams → replace our single-team figure with
-        # BBR's exact per-team split so every team-payroll page is precise. Applies to ALL trades,
-        # not only dead money. Guarded so verified single-team data is only overwritten when BBR is
+        # existing player-season the reference source shows split across teams → replace our single-team figure with
+        # the reference source's exact per-team split so every team-payroll page is precise. Applies to ALL trades,
+        # not only dead money. Guarded so verified single-team data is only overwritten when the reference source is
         # trustworthy here: either the season totals agree (a clean mid-season trade), or there's a
         # dead-money signature (off-log money / a minimum-signing mis-attribution) where our single
         # total was itself incomplete. Totals that disagree with no dead-money signal are left alone.
