@@ -768,7 +768,7 @@
       spin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.4-5.9"/><path d="M20.5 4.5v4h-4"/></svg>`,
     };
     const games = [
-      { t: "Six Spins", d: "A continuous build — keep spinning to draft attributes toward a 99-overall player.", tag: "Continuous", href: "/sixspins/", ic: ICON.spin, live: true },
+      { t: "Six Spins", d: "A continuous build — keep spinning to draft attributes toward a 99-overall player.", tag: "Continuous", href: "#/play/sixspins", ic: ICON.spin, live: true },
       { t: "Daily NBA Grid", d: "Fill every square with a player who suited up for both teams. New board every day.", tag: "New board daily", href: "#/play/grid", ic: ICON.grid, live: true },
       { t: "Stat Duel", d: "Higher or lower — pick the player with the bigger career number. Build a streak.", tag: "Endless", href: "#/play/duel", ic: ICON.duel, live: true },
       { t: "Buzzer Beater", d: "Time your release in the sweet spot and sink as many as you can before the miss meter fills.", tag: "Arcade", href: "#/play/buzzer", ic: ICON.buzzer },
@@ -780,7 +780,7 @@
     app.innerHTML = `<div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Arcade</span></div>
       <div class="section-title"><div><span class="eyebrow">NBA games &amp; puzzles</span><h2>Arcade</h2></div></div>
-      <a class="ss-hero" href="/sixspins/">
+      <a class="ss-hero" href="#/play/sixspins">
         <div class="ss-hero-l"><span class="eyebrow">Featured · Six Spins</span>
           <h3>Spin your way to a 99 overall.</h3>
           <p>A continuous build — keep spinning to draft attributes and shape a 99-overall player, one wheel at a time. Plays right here on Dunkwise.</p>
@@ -792,10 +792,17 @@
     </div>`;
   }
 
-  // Six Spins now lives natively at /sixspins/ (its own on-domain page, no iframe).
-  // Redirect legacy #/play/sixspins links/bookmarks straight there.
+  // Six Spins — our own on-domain build (served from /sixspins/), framed inside the
+  // Arcade chrome so it sits under the Dunkwise topbar + footer like the other games.
+  // Same-origin and ad-free (the page sets data-embed); we frame it so its full-app
+  // stylesheet stays isolated from the site shell rather than colliding with it.
   function renderSixSpins() {
-    location.replace("/sixspins/");
+    setSEO("Six Spins — Play", "Play Six Spins on Dunkwise — a continuous NBA game where you spin all-time rosters to build a 99-overall player.");
+    app.innerHTML = `<div class="wrap page">
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Arcade</a><span class="sep">/</span><span>Six Spins</span></div>
+      <div class="section-title"><div><span class="eyebrow">Continuous build</span><h2>Six Spins</h2></div><a class="link" href="/sixspins/" target="_blank" rel="noopener noreferrer">Open full ↗</a></div>
+      <div class="embed-frame"><iframe src="/sixspins/" title="Six Spins — build a 99-overall NBA player" loading="lazy" allow="fullscreen"></iframe></div>
+    </div>`;
   }
 
   // Daily NBA Grid — a new board every day, with an archive back to launch.
@@ -2857,7 +2864,6 @@
     cols: [
       { k: "n", label: "Player", type: "text", col: true, cls: "l grow", cell: (r) => `<span class="who">${headshot(r.i, r.n, r.t, "xs")}<a href="#/player/${r.i}">${esc(r.n)}</a></span>` },
       { k: "pg", label: "Position", type: "enum", col: true, th: "Pos", cls: "l", opts: () => ["Guard", "Forward", "Center"], cell: (r) => r.p ? esc(r.p) : "—" },
-      { k: "t", label: "Team", type: "enum", col: true, th: "Team", cls: "l", enumIcon: "team", fmtVal: (v) => tName(v) || v, cell: (r) => r.t ? teamTag(r.t, true) : "—" },
       { k: "yr", label: "Seasons", type: "num", col: true, th: "Yrs", cell: (r) => r.yr != null ? `<span title="${r.f}–${r.e}">${r.yr}</span>` : "—" },
       { k: "f", label: "Debut year", type: "num" },
       { k: "e", label: "Final year", type: "num" },
@@ -2880,7 +2886,6 @@
       { k: "fg", label: "FG%", type: "pct", col: true, th: "FG%", inMul: 0.01, unit: "%" },
       { k: "tp", label: "3P%", type: "pct", col: true, th: "3P%", inMul: 0.01, unit: "%" },
       { k: "ft", label: "FT%", type: "pct", col: true, th: "FT%", inMul: 0.01, unit: "%" },
-      { k: "sal", label: "Salary", type: "money", col: true, th: "Salary", inMul: 1e6, unit: "$M" },
     ],
   };
 
@@ -3295,7 +3300,7 @@
   }
 
   /* ================= ROUTER ================= */
-  const NAV = { "": "home", players: "players", player: "players", pseason: "players", teams: "teams", team: "teams", leaders: "leaders", standings: "standings", seasons: "seasons", season: "seasons", bracket: "seasons", awards: "awards", draft: "seasons", compare: "players", news: "news", article: "news", salaries: "salaries", games: "games", game: "games", play: "play", betting: "betting", settings: "settings", sources: "", terms: "", privacy: "" };
+  const NAV = { "": "home", players: "players", player: "players", pseason: "players", teams: "teams", team: "teams", leaders: "leaders", standings: "standings", seasons: "seasons", season: "seasons", bracket: "seasons", awards: "awards", draft: "draft", compare: "players", news: "news", article: "news", salaries: "salaries", games: "games", game: "games", play: "play", betting: "betting", settings: "settings", sources: "", terms: "", privacy: "" };
   const SECTION_SEO = {
     "": [null, "Look up any player or team in NBA history — stats, contracts, standings, leaders and awards from 1947 to today."],
     players: ["All Players", "Browse every player in NBA history — career stats, contracts and accolades for 5,000+ players."],
