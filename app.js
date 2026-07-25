@@ -1678,7 +1678,7 @@
       if (!rows || !rows.length) return;
       const el = $("#psGames");
       el.innerHTML = `<div class="section-title" style="margin-top:26px"><div><h2>${seasonLabel(yr)} game log</h2><span class="hint">${rows.length} game${rows.length === 1 ? "" : "s"}</span></div><a class="link" href="#/games/player/${pid}">All games →</a></div>
-          <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
+          <div class="card pad"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
             <thead><tr><th class="l grow">Date</th><th class="l">Opp</th><th class="l">Result</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>+/−</th></tr></thead>
             <tbody>${rows.map((r) => `<tr class="clickable" onclick="location.hash='#/game/${r.id}'">
               <td class="l grow season">${fmtDate(r.date, true)}</td><td class="l"><span class="ha">${r.home ? "" : "@"}</span>${teamTag(r.opp)}</td>
@@ -2006,7 +2006,7 @@
       ${eras.length > 1 ? `<div class="card pad fh-names"><div class="card-h"><h3>Franchise names</h3><span class="hint">${eras.length} eras</span></div><ul>${eraLine}</ul></div>` : ""}
       <div class="tilerow">${tiles.map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}</div>
       <div class="section-title" id="sec-history" style="margin-top:24px"><div><span class="eyebrow">Every season · click a row to open it</span><h2>Franchise history</h2></div>${bestW >= 0 ? `<span class="eyebrow">Best: ${bestW} wins</span>` : ""}</div>
-      <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
+      <div class="card pad"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
         <thead><tr><th class="l">Season</th><th>W</th><th>L</th><th>PCT</th><th>ORtg</th><th>DRtg</th>${hasPay ? "<th>Payroll</th>" : ""}<th class="l">Result</th></tr></thead>
         <tbody>${body}</tbody></table></div></div>
       ${draftPicksCard(ab, dp)}
@@ -2075,7 +2075,7 @@
         <td class="l">${gameTypeBadge(g.type, g.label) || (g.type && g.type !== "Regular Season" ? `<span class="gbadge">${esc(g.type)}</span>` : "")}</td></tr>`;
     };
     const gamesCard = seasonGames.length ? `<div class="section-title" id="sec-games" style="margin-top:26px"><div><span class="eyebrow">${seasonGames.length} games · ${seasonLabel(latest.season)}</span><h2>Season schedule &amp; results</h2></div><a class="link" href="#/games/${latest.season}">League scores →</a></div>
-      <div class="card" style="margin-bottom:24px"><div class="tbl-wrap"><table class="ref" style="min-width:520px">
+      <div class="card pad" style="margin-bottom:24px"><div class="tbl-wrap"><table class="ref" style="min-width:520px">
         <thead><tr><th class="l grow">Date</th><th class="l">Opponent</th><th class="l">Result</th><th class="l">Type</th></tr></thead>
         <tbody>${seasonGames.map(teamGameRow).join("")}</tbody></table></div></div>` : "";
     const tiles = latest ? [
@@ -2136,7 +2136,7 @@
       </div>
       ${gamesCard}
       ${contracts.length ? `<div class="section-title" id="sec-contracts" style="margin-top:26px"><div><span class="eyebrow">Nominal · ${contracts.length} on the books · ${money(payroll)} total</span><h2>${seasonLabel(contractSeason)} payroll</h2></div><a class="link" href="#/salaries/${contractSeason}">Salary hub →</a></div>
-        <div class="card" style="margin-bottom:24px"><div class="tbl-wrap"><table class="ref" style="min-width:420px">
+        <div class="card pad" style="margin-bottom:24px"><div class="tbl-wrap"><table class="ref" style="min-width:420px">
           <thead><tr><th class="num">#</th><th class="l grow">Player</th><th>Salary</th><th>% of payroll</th></tr></thead>
           <tbody>${contracts.map((r, i) => `<tr class="${r[0] ? "clickable" : ""}" ${r[0] ? `onclick="location.hash='#/player/${r[0]}'"` : ""}>
             <td class="num">${i + 1}</td>
@@ -2186,7 +2186,7 @@
       <div class="pt-page" id="allSalHost"></div>
       <div class="section-title" style="margin-top:26px"><div><span class="eyebrow" id="allTimeEyebrow"></span><h2>Highest single-season salaries, all-time</h2></div>
         ${CPI ? `<div class="tabs" id="inflToggle"><button data-adj="0" aria-selected="true">Nominal</button><button data-adj="1" aria-selected="false">${seasonLabel(CPI.base)} dollars</button></div>` : ""}</div>
-      <div class="card" id="allTimeCard"></div>
+      <div class="card pad" id="allTimeCard"></div>
       <p class="news-foot" style="margin-top:14px" id="allTimeFoot"></p>
     </div>`;
     const s = $("#salSel"); if (s) s.addEventListener("change", () => (location.hash = `#/salaries/${s.value}`));
@@ -2302,13 +2302,13 @@
         ${top ? `<div class="card big pad season-best"><span class="eyebrow">Best record</span>
           <div class="sb"><div class="rr">${top.w}–${top.l}</div><div>${teamTag(top.abbr, true)}<div class="muted" style="font-size:12px;margin-top:2px">${winpct(top.w, top.l)}</div></div></div></div>` : ""}
       </div>
-      <div class="section-title" style="margin-top:26px"><h2>Postseason</h2><a class="link" href="#/bracket/${yr}">Playoff bracket →</a></div>
-      <div class="section-title" style="margin-top:26px"><h2>Leaders</h2><a class="link" href="#/leaders/${yr}">All categories →</a></div>
+      <div class="section-title" style="margin-top:26px"><div><span class="eyebrow">How the season ended</span><h2>Postseason</h2></div><a class="link" href="#/bracket/${yr}">Playoff bracket →</a></div>
+      <div class="section-title" style="margin-top:26px"><div><span class="eyebrow">Who led the league</span><h2>Leaders</h2></div><a class="link" href="#/leaders/${yr}">All categories →</a></div>
       <div class="cardgrid">${["pts", "trb", "ast", "per"].map((c) => leaderCard(S, c)).join("")}</div>
       ${honorsBlock(S.honors)}
-      <div class="section-title" style="margin-top:26px"><h2>Standings</h2><a class="link" href="#/standings/${yr}">Full table →</a></div>
+      <div class="section-title" style="margin-top:26px"><div><span class="eyebrow">Where everyone finished</span><h2>Standings</h2></div><a class="link" href="#/standings/${yr}">Full table →</a></div>
       <div class="card big pad scatter-card"><div class="chart-hint"><span class="dotpulse"></span>Hover a team · click to open</div><figure id="scatterSeason" style="margin:0"></figure></div>
-      ${META.draftYears.includes(yr - 1) ? `<div class="section-title" style="margin-top:26px"><h2>Draft class</h2><a class="link" href="#/draft/${yr - 1}">${yr - 1} draft →</a></div>
+      ${META.draftYears.includes(yr - 1) ? `<div class="section-title" style="margin-top:26px"><div><span class="eyebrow">The next generation</span><h2>Draft class</h2></div><a class="link" href="#/draft/${yr - 1}">${yr - 1} draft →</a></div>
         <p class="muted" style="font-size:14px">See who entered the league in the <a href="#/draft/${yr - 1}" style="color:var(--accent-deep)">${yr - 1} NBA Draft</a>.</p>` : ""}
     </div>`;
     drawScatter("scatterSeason", st);
@@ -2332,7 +2332,7 @@
     const starHtml = (h.allStar && h.allStar.length) ? `<div class="card pad" style="grid-column:1/-1"><div class="card-h"><h3>All-Stars</h3><span class="hint">${h.allStar.length} selected</span></div>
       <div class="chip-row">${h.allStar.map((x) => playerChip(x[0], x[1], (SMAP[x[0]] || [])[5])).join("")}</div></div>` : "";
     if (!teamsHtml && !votingHtml && !starHtml) return "";
-    return `<div class="section-title" style="margin-top:26px"><h2>Honors</h2></div>
+    return `<div class="section-title" style="margin-top:26px"><div><span class="eyebrow">Individual awards</span><h2>Honors</h2></div></div>
       <div class="honors-grid">${teamsHtml}${votingHtml}${starHtml}</div>`;
   }
 
@@ -2341,7 +2341,7 @@
     app.innerHTML = `<div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Seasons</span></div>
       <div class="section-title"><div><span class="eyebrow">${META.history.length} seasons · 1947–${META.current}</span><h2>Every NBA season</h2></div></div>
-      <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:920px">
+      <div class="card pad"><div class="tbl-wrap"><table class="ref" style="min-width:920px">
         <thead><tr><th class="l">Season</th><th class="l">Champion</th><th class="l">Finals MVP</th><th class="l">MVP</th><th class="l">Rookie of Year</th><th class="l">Defensive POY</th><th class="l">Scoring</th></tr></thead>
         <tbody>${META.history.map((h) => { const pl = (id, nm) => (nm ? `<a href="#/player/${id}">${esc(nm)}</a>` : "—"); return `<tr onclick="location.hash='#/season/${h.season}'" style="cursor:pointer">
           <td class="l season">${seasonLabel(h.season)}</td>
@@ -3006,7 +3006,7 @@
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Awards</span></div>
       <div class="section-title"><div><span class="eyebrow">Every winner · 1947–${META.current}</span><h2>Awards &amp; honors</h2></div></div>
       <div class="tabs seg-lg awtabs" id="awTabs">${TABS.map(([t, l]) => `<button data-k="${t}" aria-selected="${t === k}">${l}</button>`).join("")}</div>
-      <div class="card" style="margin-top:18px"><div class="tbl-wrap"><table class="ref" style="min-width:0" id="awTable">${table(AW[k])}</table></div></div>
+      <div class="card pad" style="margin-top:18px"><div class="tbl-wrap"><table class="ref" style="min-width:0" id="awTable">${table(AW[k])}</table></div></div>
     </div>`;
     $$("#awTabs button").forEach((b) => b.addEventListener("click", () => {
       $$("#awTabs button").forEach((x) => x.setAttribute("aria-selected", "false"));
@@ -3023,7 +3023,7 @@
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Draft</span></div>
       <div class="section-title"><div><span class="eyebrow">Every pick on record</span><h2>${yr} NBA Draft</h2></div>
         <label class="season-select"><span>Draft</span><select id="draftSel">${META.draftYears.map((v) => `<option value="${v}" ${v === yr ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>
-      <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:${hasCollege ? 560 : 0}px">
+      <div class="card pad"><div class="tbl-wrap"><table class="ref" style="min-width:${hasCollege ? 560 : 0}px">
         <thead><tr><th class="num">Pick</th><th class="num">Rd</th><th class="l">Team</th><th class="l${hasCollege ? "" : " grow"}">Player</th>${hasCollege ? `<th class="l grow">College / From</th>` : ""}</tr></thead>
         <tbody>${D.picks.map((p) => `<tr class="${p[3] ? "clickable" : ""}" ${p[3] ? `onclick="location.hash='#/player/${p[3]}'"` : ""}>
           <td class="num">${p[0] ?? "—"}</td><td class="num">${p[1] ?? "—"}</td>
