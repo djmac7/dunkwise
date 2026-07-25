@@ -768,7 +768,7 @@
       spin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.4-5.9"/><path d="M20.5 4.5v4h-4"/></svg>`,
     };
     const games = [
-      { t: "Six Spins", d: "A continuous build — keep spinning to draft attributes toward a 99-overall player.", tag: "Continuous", href: "#/play/sixspins", ic: ICON.spin, live: true },
+      { t: "Six Spins", d: "A continuous build — keep spinning to draft attributes toward a 99-overall player.", tag: "Continuous", href: "/sixspins/", ic: ICON.spin, live: true },
       { t: "Daily NBA Grid", d: "Fill every square with a player who suited up for both teams. New board every day.", tag: "New board daily", href: "#/play/grid", ic: ICON.grid, live: true },
       { t: "Stat Duel", d: "Higher or lower — pick the player with the bigger career number. Build a streak.", tag: "Endless", href: "#/play/duel", ic: ICON.duel, live: true },
       { t: "Buzzer Beater", d: "Time your release in the sweet spot and sink as many as you can before the miss meter fills.", tag: "Arcade", href: "#/play/buzzer", ic: ICON.buzzer },
@@ -780,7 +780,7 @@
     app.innerHTML = `<div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Arcade</span></div>
       <div class="section-title"><div><span class="eyebrow">NBA games &amp; puzzles</span><h2>Arcade</h2></div></div>
-      <a class="ss-hero" href="#/play/sixspins">
+      <a class="ss-hero" href="/sixspins/">
         <div class="ss-hero-l"><span class="eyebrow">Featured · Six Spins</span>
           <h3>Spin your way to a 99 overall.</h3>
           <p>A continuous build — keep spinning to draft attributes and shape a 99-overall player, one wheel at a time. Plays right here on Dunkwise.</p>
@@ -792,14 +792,10 @@
     </div>`;
   }
 
-  // Six Spins embedded in-site (keeps players on Dunkwise; framing is allowed).
+  // Six Spins now lives natively at /sixspins/ (its own on-domain page, no iframe).
+  // Redirect legacy #/play/sixspins links/bookmarks straight there.
   function renderSixSpins() {
-    setSEO("Six Spins — Play", "Play Six Spins — a continuous NBA game where you spin clues to build a 99-overall player.");
-    app.innerHTML = `<div class="wrap page">
-      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Arcade</a><span class="sep">/</span><span>Six Spins</span></div>
-      <div class="section-title"><div><span class="eyebrow">Continuous build · embedded</span><h2>Six Spins</h2></div><a class="link" href="https://sixspins.com" target="_blank" rel="noopener noreferrer">Open full ↗</a></div>
-      <div class="embed-frame"><iframe src="https://sixspins.com/?embed=1" title="Six Spins — build a 99-overall NBA player" loading="lazy" allow="fullscreen"></iframe></div>
-    </div>`;
+    location.replace("/sixspins/");
   }
 
   // Daily NBA Grid — a new board every day, with an archive back to launch.

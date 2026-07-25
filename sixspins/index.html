@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+    <!-- Native on Dunkwise: no ad furniture. `data-embed` makes the app's CSS drop the ad
+         rails and reclaim the reserved anchor-ad space, giving the full-frame layout. Set in
+         <head> so it applies before first paint; the RevIQ ad script is never loaded here. -->
+    <script>document.documentElement.setAttribute('data-embed', '');</script>
+
+    <!-- Primary SEO -->
+    <title>Six Spins to 99 OVR — NBA Puzzle Game</title>
+    <meta name="description" content="Six Spins is a free NBA puzzle game. Spin six random all-time rosters, steal one skill from a star each spin, and build a 99 OVR player. Keep spinning — play as many as you want." />
+    <meta name="keywords" content="Six Spins, NBA puzzle, NBA puzzle game, build the GOAT, NBA GOAT, basketball trivia, Wordle for basketball, hoops puzzle, basketball stats game, 99 OVR" />
+    <meta name="author" content="Six Spins" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#262624" media="(prefers-color-scheme: dark)" />
+    <meta name="application-name" content="Six Spins" />
+    <meta name="apple-mobile-web-app-title" content="Six Spins" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://dunkwise.com/sixspins/" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+    <link rel="alternate icon" href="./favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./site.webmanifest" />
+
+    <!-- Open Graph (Facebook, iMessage, Slack, Discord, LinkedIn) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Six Spins" />
+    <meta property="og:title" content="Six Spins to 99 OVR — NBA Puzzle Game" />
+    <meta property="og:description" content="A free NBA puzzle game. Spin six random all-time rosters, steal one skill from a star each spin, and build a 99 OVR player. Keep spinning — play as many as you want." />
+    <meta property="og:url" content="https://dunkwise.com/sixspins/" />
+    <meta property="og:image" content="https://dunkwise.com/sixspins/og.png?v=7" />
+    <meta property="og:image:secure_url" content="https://dunkwise.com/sixspins/og.png?v=7" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Six Spins — NBA puzzle game. Build the GOAT in six spins: a 99 OVR player card with six ability ratings from Shooting to Rebounding." />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Six Spins to 99 OVR — NBA Puzzle Game" />
+    <meta name="twitter:description" content="A free NBA puzzle game. Spin six random all-time rosters, steal one skill from a star each spin, and build a 99 OVR player." />
+    <meta name="twitter:image" content="https://dunkwise.com/sixspins/og.png?v=7" />
+    <meta name="twitter:image:alt" content="Six Spins — NBA puzzle game. Build the GOAT in six spins and hit 99 OVR." />
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoGame",
+      "name": "Six Spins",
+      "alternateName": "Six Spins to 99 OVR — NBA Puzzle Game",
+      "url": "https://dunkwise.com/sixspins/",
+      "image": "https://dunkwise.com/sixspins/og.png",
+      "description": "A free NBA puzzle game. Spin six random all-time rosters, steal one skill from a star each spin, and build a 99 OVR player across six abilities.",
+      "genre": ["Puzzle", "Sports", "Trivia"],
+      "gamePlatform": ["Web Browser"],
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Any",
+      "playMode": "SinglePlayer",
+      "inLanguage": "en",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do you play Six Spins?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Each spin deals you a random all-time NBA team-year roster. You steal one ability rating (Shooting, Scoring, Playmaking, Defense, Rebounding, or Clutch) from a player on that board. After six spins you've filled all six abilities — your picks combine into an overall rating (OVR), and a perfect run builds a 99 OVR GOAT."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Six Spins free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Six Spins is a free browser game — no download, no sign-up. Play as many boards as you want and keep spinning to build a 99 OVR player."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How long does a game take?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "About 60 seconds. Six spins, six picks, one shareable player card."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Start the game-data fetch in parallel with the JS bundle instead of after React
+         mounts (loader.js reuses the preloaded response). -->
+    <link rel="preload" href="./data/goat-data.json" as="fetch" crossorigin="anonymous" />
+    <link rel="preload" href="./data/percentile-table.json" as="fetch" crossorigin="anonymous" />
+
+    <!-- Hardwood design-system typefaces (shared with claude-nba). Source: ../../hardwood-ds -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Above-the-fold content prerendered into #root: real crawlable HTML (H1 + pitch +
+         how-it-works) in the initial payload for a brand-new domain, doubling as the branded
+         loading state. React's createRoot() replaces #root on mount, so it vanishes the
+         instant the app is interactive (data is <link rel=preload>ed, so that's near-instant). -->
+    <style>
+      .pre{font-family:"Schibsted Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+        max-width:640px;margin:0 auto;padding:56px 24px;text-align:center;color:#1A1915}
+      .pre__logo{font-size:40px;line-height:1;letter-spacing:-0.06em}
+      .pre h1{font-family:"Fraunces",Georgia,serif;font-weight:900;font-size:38px;line-height:1.05;
+        letter-spacing:-0.03em;margin:18px 0 12px}
+      .pre h1 b{color:#D97757;font-weight:900}
+      .pre__sub{font-size:18px;line-height:1.5;color:#5A564C;font-weight:500;margin:0 auto 26px;max-width:520px}
+      .pre__steps{list-style:none;margin:0 auto 26px;padding:0;display:flex;flex-direction:column;gap:10px;max-width:460px;text-align:left}
+      .pre__steps li{background:#F6F4EC;border-left:3px solid #D97757;border-radius:9px;padding:12px 16px;font-size:15px;color:#1A1915}
+      .pre__steps b{font-weight:800}
+      .pre__spinner{width:30px;height:30px;margin:8px auto 0;border-radius:50%;
+        border:3px solid #E7E3D7;border-top-color:#D97757;animation:pre-spin .7s linear infinite}
+      .pre__links{margin-top:22px;font-size:14px;color:#8D8877}
+      .pre__links a{color:#BF5D3B;font-weight:700;text-decoration:none}
+      @keyframes pre-spin{to{transform:rotate(360deg)}}
+      @media (prefers-color-scheme:dark){
+        .pre{color:#F5F3EC}.pre h1{color:#F5F3EC}.pre__sub{color:#BAB6AA}
+        .pre__steps li{background:#302F2B;color:#F5F3EC}.pre__links{color:#847F72}
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-DUe0mQek.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DDtb8IP8.css">
+  </head>
+  <body>
+    <div id="root">
+      <div class="pre">
+        <div class="pre__logo" aria-hidden="true">6️⃣🔄</div>
+        <h1>Six Spins — build the <b>NBA GOAT</b> in six spins</h1>
+        <p class="pre__sub">
+          A free NBA puzzle game — like Wordle, but for basketball. Spin six random all-time
+          team-years, steal one rating from a star on each roster, and keep spinning to build
+          a 99 OVR player.
+        </p>
+        <ol class="pre__steps">
+          <li><b>Spin</b> — land on a random all-time NBA roster (e.g. the ’96 Bulls).</li>
+          <li><b>Steal</b> — take one ability from one player: Shooting, Scoring, Playmaking, Defense, Rebounding, or Clutch.</li>
+          <li><b>Build</b> — fill all six abilities across six spins and chase a 99 OVR.</li>
+        </ol>
+        <div class="pre__spinner" role="status" aria-label="Loading the game"></div>
+        <p class="pre__links">Loading… &nbsp;·&nbsp; <a href="./how-to-play.html">How to play &amp; FAQ</a></p>
+      </div>
+    </div>
+
+    <!-- RevIQ rail ad units: two stacked per side (…rail-1 over …rail-2), parked in
+         the left/right gutters. RevIQ auto-detects [data-ad] and fills each slot.
+         (The video unit lives in-app, under the Your Player section — GameScreen.jsx.) -->
+    <aside class="ad-rail ad-rail--left" aria-hidden="true">
+      <div data-ad="left-rail-1"></div>
+      <div data-ad="left-rail-2"></div>
+    </aside>
+    <aside class="ad-rail ad-rail--right" aria-hidden="true">
+      <div data-ad="right-rail-1"></div>
+      <div data-ad="right-rail-2"></div>
+    </aside>
+
+    <noscript>
+      <h1>Six Spins — Build the NBA GOAT in Six Spins</h1>
+      <p>
+        Six Spins is a free NBA puzzle game. You spin six random team-years,
+        steal one ability rating from a star on each board, and assemble your GOAT across
+        six abilities — Shooting, Scoring, Playmaking, Defense, Rebounding, and Clutch.
+        Lock in all six, get an overall rating, and keep spinning to chase a 99 OVR.
+        JavaScript is required to play.
+      </p>
+    </noscript>
+  </body>
+</html>
