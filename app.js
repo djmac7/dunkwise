@@ -3,7 +3,7 @@
    Async data access; official-CDN logos/headshots with fallbacks.
    ============================================================ */
 (function () {
-  const V = "47";
+  const V = "48";
   // Injury report is hidden site-wide until we have reliable, injury-specific data for
   // every player (the ESPN feed is offseason transaction noise). Flip to true to restore.
   const SHOW_INJURIES = false;
@@ -40,6 +40,7 @@
   const getGame = (id) => j(`data/game/${id}.json?v=${V}`);
   const getPGames = (pid) => j(`data/pgames/${pid}.json?v=${V}`);
   const getTwoK = () => j(`data/twok.json?v=${V}`);
+  const getTwoKHist = () => j(`data/twok_history.json?v=${V}`).catch(() => null);
   const getInjuries = () => jl(`data/injuries.json`);
   const getStatus = () => jl(`data/status.json`);
   const getOdds = () => jl(`data/odds.json`);
@@ -1294,7 +1295,46 @@
   async function twoKCard(pid) {
     let d; try { d = await getTwoK(); } catch (e) { return ""; }
     const r = d && d.ratings && d.ratings[pid];
-    if (!r) return "";
+    const hist = await getTwoKHist();
+    const hrec = hist && hist.players && hist.players[pid];
+    if (!r && !hrec) return "";
+    // OVR across every 2K edition the player appeared in — an inline SVG sparkline
+    // (no chart lib), points labelled at the ends and at the peak so the arc reads
+    // without a hover. Editions come pre-ordered from the harvest.
+    let histHtml = "";
+    if (hrec) {
+      const pts = hist.editions.filter((e) => hrec[e] != null).map((e) => ({ e, v: hrec[e] }));
+      if (pts.length >= 2) {
+        const vs = pts.map((p) => p.v), lo = Math.min(...vs), hi = Math.max(...vs);
+        const W = 300, H = 64, pad = 8, span = Math.max(1, hi - lo);
+        // Space points by their actual edition number, not evenly by index, so a
+        // missing edition (e.g. the 2K23–24 gap between the archived charts and the
+        // current-edition merge) reads as a real gap instead of a silent step.
+        const en = (e) => parseInt(String(e).replace(/\D/g, ""), 10) || 0;
+        const e0 = en(pts[0].e), eSpan = Math.max(1, en(pts[pts.length - 1].e) - e0);
+        const x = (i) => pad + (en(pts[i].e) - e0) * (W - 2 * pad) / eSpan;
+        const y = (v) => H - pad - (v - lo) * (H - 2 * pad) / span;
+        const line = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(p.v).toFixed(1)}`).join(" ");
+        const peak = pts.reduce((a, b) => (b.v > a.v ? b : a));
+        const dot = (p, i, cls) => `<circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="2.6" class="${cls}"/>`;
+        const lab = (p, i) => `<text x="${x(i).toFixed(1)}" y="${(y(p.v) - 7).toFixed(1)}" class="tkh-lab">${p.v}</text>`;
+        const ends = [0, pts.length - 1, pts.indexOf(peak)].filter((v, i, a) => a.indexOf(v) === i);
+        histHtml = `<div class="tkh">
+          <div class="tkh-h"><span class="tkh-t">2K rating by edition</span><span class="tkh-r">${pts[0].e.replace("2K", "2K")} – ${pts[pts.length - 1].e}</span></div>
+          <svg viewBox="0 0 ${W} ${H}" class="tkh-svg" preserveAspectRatio="none" role="img" aria-label="2K overall rating over time">
+            <path d="${line}" fill="none" class="tkh-line"/>
+            ${pts.map((p, i) => ends.includes(i) ? dot(p, i, i === pts.indexOf(peak) ? "tkh-dot peak" : "tkh-dot") : "").join("")}
+            ${ends.map((i) => lab(pts[i], i)).join("")}
+          </svg>
+          <div class="tkh-x"><span>${pts[0].e}</span><span>${pts[pts.length - 1].e}</span></div>
+        </div>`;
+      }
+    }
+    // history exists but no current-edition attributes: still show the arc on its own
+    if (!r) return `<div class="card pad" id="twokInner" style="margin-top:26px">
+        <div class="card-h"><h3>NBA 2K rating</h3><span class="hint">career editions</span></div>
+        ${histHtml}
+      </div>`;
     const avg = (keys) => { const vs = keys.map((k) => r[k]).filter((v) => v != null); return vs.length ? Math.round(vs.reduce((a, b) => a + b, 0) / vs.length) : null; };
     const cats = [
       ["Outside", avg(["closeShot", "midRangeShot", "threePointShot", "freeThrow"])],
@@ -1313,6 +1353,7 @@
           <div class="tk-badge"><div class="tk-ovr">${ovr}</div><div class="tk-ovr-l">Overall</div><div class="tk-tier">${tier}</div></div>
           <div class="tk-attrs">${cats.map(([l, v]) => bar(l, v)).join("")}</div>
         </div>
+        ${histHtml}
       </div>`;
   }
 
@@ -1436,6 +1477,16 @@
       return `<div class="tbl-wrap"><table class="ref" style="min-width:760px">${H(["Season", "Tm", "Age", "GP", "MPG", "FG%", "3P%", "FT%", "REB", "AST", "STL", "BLK", "PTS", "PER", "TS%"])}<tbody>${p.log.map(row).join("")}${careerRow}</tbody></table></div>`;
     }
 
+    // Jersey numbers with the seasons and team behind each — bio.numbers alone could
+    // only manage "#23 +1" in a tooltip, which says nothing about when and is invisible
+    // on touch. Spans come pre-collapsed from build/apply_jersey_history.py.
+    const numHist = (b.numHist || []).filter((h) => h.n);
+    const yrRange = (lo, hi) => lo === hi ? `<span class=nb>${seasonLabel(lo)}</span>` : `<span class=nb>${seasonLabel(lo)}</span> – <span class=nb>${seasonLabel(hi)}</span>`;
+    const numHistHtml = numHist.length ? numHist.map((h) => `<span class="jsy">
+        <span class="jsy-n">${esc(h.n)}</span>
+        <span class="jsy-sp">${h.sp.map(([tm, lo, hi]) => `<span class="jsy-s">${teamLogo(tm, "xs", hi)}<span class="jsy-y">${yrRange(lo, hi)}</span></span>`).join("")}</span>
+      </span>`).join("") : "";
+
     app.innerHTML = `
     <div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/players">Players</a><span class="sep">/</span><span>${esc(p.name)}</span></div>
@@ -1448,7 +1499,7 @@
             <h1>${esc(p.name)}</h1>
             ${b.nickname ? `<div class="ph-nick">“${esc(b.nickname)}”</div>` : ""}
             <div class="bio">
-              ${b.num ? bioItem("Number", `<span${b.numbers && b.numbers.length > 1 ? ` title="Numbers worn: ${b.numbers.map((n) => "#" + n).join(", ")}"` : ""}>#${esc(b.num)}${b.numbers && b.numbers.length > 1 ? `<span class="muted" style="font-weight:400"> +${b.numbers.length - 1}</span>` : ""}</span>`) : ""}
+              ${b.num ? bioItem("Number", `<span>#${esc(b.num)}</span>`) : ""}
               ${bioItem("Seasons", `${seasonLabel(b.from || p.log[0][0])} – ${seasonLabel(b.to || curSeasonNo)}`)}
               ${bioItem("Experience", nSeasons <= 1 ? "Rookie" : nSeasons + " seasons")}
               ${b.ht ? bioItem("Ht / Wt", `${b.ht}${b.wt ? " · " + b.wt + " lb" : ""}`) : ""}
@@ -1467,6 +1518,7 @@
       ${(p.acc.length || teamsStrip) ? `<div class="co">
         ${p.acc.length ? `<div class="co-row"><span class="co-lab">Honors</span><div class="chip-row">${p.acc.map((a) => { const d = accDetail(a.t, p.accy) || accDesc(a.t); return `<span class="chip ${a.g ? "gold" : ""} has-detail" data-acc="${esc(a.t)}" data-years="${esc(d)}">${a.g ? "★ " : ""}${esc(a.t)}</span>`; }).join("")}</div></div>` : ""}
         ${teamsStrip ? `<div class="co-row"><span class="co-lab">Career path</span>${teamsStrip}</div>` : ""}
+        ${numHistHtml ? `<div class="co-row"><span class="co-lab">Numbers</span><div class="jsy-row">${numHistHtml}</div></div>` : ""}
       </div>` : ""}
 
       <nav class="jumpnav" id="jumpNav">${[["Stats", "sec-stats"], ["Recent", "recentForm"], ["Shooting", "sec-shooting"], (salRows && salRows.length ? ["Salary", "sec-salary"] : null), ["2K", "sec-2k"], ["News", "playerNews"], ["Related", "relPlayers"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
@@ -1835,15 +1887,26 @@
     const latestSeason = seasons[0] ? seasons[0].season : META.current;
     // distinct eras (oldest→newest) for the "franchise names" line
     const nameSpan = {};
-    seasons.forEach((s) => { const nm = s.nm || t.name; (nameSpan[nm] = nameSpan[nm] || []).push(s.season); });
-    const eras = Object.entries(nameSpan).map(([nm, ys]) => ({ nm, lo: Math.min(...ys), hi: Math.max(...ys) })).sort((a, b) => a.lo - b.lo);
+    seasons.forEach((s) => {
+      const nm = s.nm || t.name;
+      (nameSpan[nm] = nameSpan[nm] || { ys: [], ab: s.ab || ab }).ys.push(s.season);
+    });
+    const eras = Object.entries(nameSpan)
+      .map(([nm, v]) => ({ nm, ab: v.ab, lo: Math.min(...v.ys), hi: Math.max(...v.ys) }))
+      .sort((a, b) => a.lo - b.lo);
     // One row per name. Season labels are themselves hyphenated ("1967-68"), so a
     // bare "1967-68–1972-73" reads as one long number — space the range, keep each
     // end unbreakable, and collapse a single-season era to just that season.
     const eraSpan = (e) => e.hi >= META.current ? `${seasonLabel(e.lo)} – present`
       : e.lo === e.hi ? seasonLabel(e.lo)
       : `${seasonLabel(e.lo)} – ${seasonLabel(e.hi)}`;
-    const eraLine = eras.map((e) => `<li><span class="fh-nm">${esc(e.nm)}</span><span class="fh-yr">${eraSpan(e).replace(/(\d{4}-\d{2}|present)/g, "<span class=nb>$1</span>")}</span></li>`).join("");
+    // Each era gets the logo the club actually wore then — BBR keeps season-stamped
+    // marks for defunct names (PHW-1962, SFW-1971), so pass the era's final season.
+    const eraLine = eras.map((e, i) => `<li class="fh-era${i === eras.length - 1 ? " now" : ""}">
+        <span class="fh-mark">${teamLogo(e.ab, "md", e.hi)}</span>
+        <span class="fh-txt"><span class="fh-nm">${esc(e.nm)}</span><span class="fh-yr">${eraSpan(e).replace(/(\d{4}-\d{2}|present)/g, "<span class=nb>$1</span>")}</span>
+          <span class="fh-len">${e.hi - e.lo + 1} season${e.hi - e.lo ? "s" : ""}</span></span>
+      </li>`).join("");
     const tiles = [
       ["Seasons", seasons.length],
       ["NBA titles", titles],
@@ -1864,7 +1927,7 @@
       const nm = s.nm || t.name;
       if (nm !== curNm) {
         curNm = nm;
-        const yrs = nameSpan[nm];
+        const yrs = nameSpan[nm].ys;
         body += `<tr class="fh-era"><td colspan="${NCOL}"><span class="fh-era-nm">${esc(nm)}</span><span class="fh-era-yr">${seasonLabel(Math.min(...yrs))} – ${Math.max(...yrs) >= META.current ? "present" : seasonLabel(Math.max(...yrs))}</span></td></tr>`;
       }
       const result = s.champ ? `<span class="champ-badge" title="NBA champion">Champion</span>` : (s.po ? `<span class="pill w">Playoffs</span>` : `<span class="muted">—</span>`);
@@ -1888,7 +1951,7 @@
             <a class="btn-mini" href="#/team/${ab}/${latestSeason}">${seasonLabel(latestSeason)} season →</a></div>
         </div>
       </div>
-      ${eras.length > 1 ? `<div class="fh-names"><span class="eyebrow">Franchise names</span><ul>${eraLine}</ul></div>` : ""}
+      ${eras.length > 1 ? `<div class="card pad fh-names"><div class="card-h"><h3>Franchise names</h3><span class="hint">${eras.length} eras</span></div><ul>${eraLine}</ul></div>` : ""}
       <div class="tilerow">${tiles.map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}</div>
       <div class="section-title" style="margin-top:24px"><div><span class="eyebrow">Every season · click a row to open it</span><h2>Franchise history</h2></div>${bestW >= 0 ? `<span class="eyebrow">Best: ${bestW} wins</span>` : ""}</div>
       <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
@@ -1921,6 +1984,12 @@
     const seasonRoster = rbsAll[selSeason];
     const displayRoster = seasonRoster || t.roster || [];
     const rosterExact = !!seasonRoster || selSeason === rosterSeason;
+    // `t.roster` is refreshed live from ESPN, which switches to the UPCOMING roster as
+    // soon as the offseason starts — so it is not "this season's roster" year-round.
+    // Keep it, but only ever show it under its own heading (see the next-season card).
+    const liveRoster = t.roster || [];
+    const seasonIds = new Set(displayRoster.map((r) => r[0]));
+    const liveNewcomers = liveRoster.filter((r) => r[0] && !seasonIds.has(r[0]));
     const conf = m ? m.conf : null;
     const teamSel = `<label class="season-select"><span>Season</span><select class="mini-select" id="tmSeasonSel">${t.seasons.map((s) => `<option value="${s.season}" ${s.season === latest.season ? "selected" : ""}>${seasonLabel(s.season)}</option>`).join("")}</select></label>`;
     // The payroll section always reflects the season the page is showing — never a different
@@ -1938,6 +2007,10 @@
     // standings key off the era abbr (season files), games may use either the era or the modern abbr
     const isUs = (x) => x === seasonAb || x === ab;
     if (latest) { try { const gidx = await getGamesIdx(latest.season); seasonGames = (gidx.games || []).filter((g) => isUs(g.a) || isUs(g.h)).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)); } catch {} }
+    // Season finished and we're past it — so the live ESPN roster is next season's.
+    const lastGameDate = seasonGames.length ? seasonGames[seasonGames.length - 1].date : null;
+    const seasonOver = lastGameDate ? (Date.now() - new Date(lastGameDate + "T12:00:00Z").getTime()) / 86400000 > 10 : false;
+    const showNextRoster = seasonOver && selSeason === rosterSeason && liveNewcomers.length > 0;
     const teamGameRow = (g) => {
       const home = isUs(g.h), opp = home ? g.a : g.h, us = home ? g.hs : g.as, them = home ? g.as : g.hs;
       const played = us != null && them != null, w = played && us > them;
@@ -1989,6 +2062,11 @@
             <tbody>${displayRoster.map((r) => `<tr><td class="num muted">${r[7] != null && r[7] !== "" ? esc(r[7]) : ""}</td><td class="l"><span class="who">${headshot(r[0], r[1], ab, "xs")}<a href="#/player/${r[0]}">${esc(r[1])}</a></span></td>
               <td class="hi">${one(r[4])}</td><td>${one(r[5])}</td><td>${one(r[6])}</td><td>${r[3]}</td><td class="l muted">${esc((r[2] || "").split("-")[0])}</td></tr>`).join("")}</tbody>
           </table></div>` : `<p class="muted" style="font-size:14px">No roster on record.</p>`}
+          ${showNextRoster ? `<div class="next-roster">
+            <div class="nr-h"><span class="eyebrow">${seasonLabel(selSeason + 1)} roster · as signed</span><span class="hint">${liveNewcomers.length} new</span></div>
+            <p class="muted nr-note">Offseason moves for next season. Per-game numbers below are each player's ${seasonLabel(selSeason)} production, with their previous team.</p>
+            <ul class="nr-list">${liveNewcomers.map((r) => `<li><span class="who">${headshot(r[0], r[1], ab, "xs")}<a href="#/player/${r[0]}">${esc(r[1])}</a></span><span class="nr-s">${one(r[4])} pts</span></li>`).join("")}</ul>
+          </div>` : ""}
         </div>
         <div class="card pad fh-collapsed" id="fhCard" style="min-width:0">
           <div class="card-h"><h3>Franchise history</h3><span class="hint">by season${hasPay ? " · payroll" : ""}</span></div>

@@ -48,8 +48,12 @@ for tf in glob.glob(os.path.join(DATA, "team", "*.json")):
     by_season = rosters.get(ab, {})
     out = {}
     for season, rows in by_season.items():
-        if season == last:
-            continue                      # latest season already covered by the live `roster`
+        # Every season, including the most recent. The live `roster` used to stand in
+        # for the latest one, but ESPN serves the *upcoming* roster once the offseason
+        # starts — so in July the finished 2025-26 page was listing 2026-27 signings
+        # (Jaylen Brown on PHI) beside their 2025-26 stats. Log-derived rows are the
+        # players who actually appeared for the team that season, which is what a
+        # season view means.
         rows.sort(key=lambda x: (x[4] is None, -(x[4] or 0)))
         out[season] = rows[:CAP]
     t["rostersBySeason"] = {str(s): out[s] for s in sorted(out, reverse=True)}

@@ -125,8 +125,8 @@ def page(title, desc, canon, body, jsonld=None, og_type="website"):
 <meta name="twitter:title" content="{esc(title)} — Dunkwise" />
 <meta name="twitter:description" content="{esc(desc)}" />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Schibsted+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="{BASE}/ds/tokens.css?v=103" />
-<link rel="stylesheet" href="{BASE}/styles.css?v=103" />
+<link rel="stylesheet" href="{BASE}/ds/tokens.css?v=104" />
+<link rel="stylesheet" href="{BASE}/styles.css?v=104" />
 {ld}
 </head>
 <body>
