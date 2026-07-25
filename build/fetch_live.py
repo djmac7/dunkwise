@@ -213,7 +213,7 @@ def rosters():
             pid = hit[0][1]; seen.add(pid)
             pos = (a.get("position") or {}).get("abbreviation", "") or ""
             c = cur(pid)
-            roster.append([pid, pid2name.get(pid, a.get("fullName")), pos, c.get("g"), c.get("pts"), c.get("trb"), c.get("ast")])
+            roster.append([pid, pid2name.get(pid, a.get("fullName")), pos, c.get("g"), c.get("pts"), c.get("trb"), c.get("ast"), a.get("jersey") or ""])
             # keep the player's own current team in sync with the live roster, so a
             # traded player's masthead reflects his new team (not last season's).
             pf = os.path.join(DATA, "player", f"{pid}.json")

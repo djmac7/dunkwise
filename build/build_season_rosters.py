@@ -15,7 +15,7 @@ without the raw a public historical dataset CSVs. Idempotent: re-run any time af
 log row layout (see build_data.py):
   [0 season, 1 lg, 2 team, 3 age, 4 g, 5 mp, 6 fg%, 7 3p%, 8 ft%,
    9 trb, 10 ast, 11 stl, 12 blk, 13 pts, 14 per, 15 ts%, 16 stint_flag]
-roster row (matches the live `roster` shape): [id, name, pos, g, pts, reb, ast]
+roster row (matches the live `roster` shape): [id, name, pos, g, pts, reb, ast, number]
 """
 import json, os, glob, re
 
@@ -24,6 +24,9 @@ DATA = os.path.join(HERE, "..", "data")
 MULTI = re.compile(r"^\d+TM$")            # 2TM / 3TM … combined-stint line — skip
 NON_TEAM = {"NBA", "ABA", "BAA", "TOT", ""}
 CAP = 18                                  # top scorers kept per season (keeps files lean + the card tidy)
+# jersey number per (player, season, team) — looked up by the REAL team a player logged that
+# season, so a traded player shows the right number on each team (and crawl phantoms never match).
+JERSEY = json.load(open(os.path.join(HERE, "jersey_by_season.json")))
 
 # team -> season -> list of roster rows
 rosters = {}
@@ -35,8 +38,9 @@ for f in glob.glob(os.path.join(DATA, "player", "*.json")):
         season, team, g, trb, ast, pts = r[0], r[2], r[4], r[9], r[10], r[13]
         if not team or MULTI.match(str(team)) or team in NON_TEAM:
             continue
+        num = JERSEY.get(pid, {}).get(f"{season}|{team}", "")
         rosters.setdefault(team, {}).setdefault(int(season), []).append(
-            [pid, nm, pos, g, pts, trb, ast]
+            [pid, nm, pos, g, pts, trb, ast, num]
         )
 
 # sort each season by points (desc, None last) and cap; write into the team files
