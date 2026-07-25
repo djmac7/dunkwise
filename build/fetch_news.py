@@ -4,7 +4,7 @@ Fetch NBA headlines from public RSS/Atom feeds -> data/news.json.
 Stores only headline + link + source + timestamp (a headlines aggregator that
 links out to each publisher; no article text is copied). Re-run to refresh.
 """
-import json, os, re, sys, urllib.request
+import html, json, os, re, sys, urllib.request
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import xml.etree.ElementTree as ET
@@ -36,8 +36,12 @@ def parse_date(s):
     return None
 
 def clean(t):
-    t = re.sub(r"<[^>]+>", "", t or "").strip()
-    return re.sub(r"\s+", " ", t)
+    # feeds arrive HTML-encoded ("It&#39;s", "Golden State &amp; …"); decode entities to
+    # real characters first, then strip tags and collapse whitespace. Without the unescape
+    # the render layer re-escapes the "&", so "&#39;" leaks through to the page as text.
+    t = html.unescape(t or "")
+    t = re.sub(r"<[^>]+>", "", t)
+    return re.sub(r"\s+", " ", t).strip()
 
 def fetch(url):
     req = urllib.request.Request(url, headers=UA)
