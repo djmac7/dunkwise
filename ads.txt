@@ -1,5 +1,5 @@
 # Synced copy of https://rev.iq/dunkwise.com/ads.txt — the source of truth.
-# Do not edit here; update at rev.iq and re-fetch. (GitHub Pages can't HTTP-redirect a .txt.)
+# Auto-synced daily by .github/workflows/sync-adstxt.yml; do not edit here (update at rev.iq).
 
 # RevIQ
 # Empowering advertisers and publishers through a new generation of

@@ -15,7 +15,7 @@ on:
   push:
     branches: [main]
   workflow_run:
-    workflows: [refresh-live, refresh-daily, refresh-picks]
+    workflows: [refresh-live, refresh-daily, refresh-picks, sync-adstxt]
     types: [completed]
   workflow_dispatch: {}
 

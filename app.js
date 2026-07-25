@@ -1911,13 +1911,11 @@
         <div class="dp-year-h">${r.y}</div>
         <div class="dp-round"><div class="dp-round-lbl">First round</div>${round(r.r1)}</div>
         <div class="dp-round"><div class="dp-round-lbl">Second round</div>${round(r.r2)}</div></div>`).join("");
-    const asOf = (() => { try { const [y, mo, d] = dp.asOf.split("-"); return `${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+mo - 1]} ${+d}, ${y}`; } catch { return dp.asOf; } })();
     return `<div class="section-title" id="sec-picks" style="margin-top:26px"><div><span class="eyebrow">Owned, incoming, swaps &amp; protections · ${yr0}–${yr1}</span><h2>Future draft picks</h2></div>
         <span class="eyebrow">${team.firsts} first${team.firsts === 1 ? "" : "s"} · ${team.seconds} second${team.seconds === 1 ? "" : "s"}</span></div>
       <div class="card dp-card">
         <div class="dp-legend"><span class="dp-p own">Owned</span><span class="dp-p cond">Conditional</span><span class="dp-p out">Traded away</span></div>
-        <div class="dp-years">${years}</div>
-        <p class="muted dp-src">Source: <a href="${esc(dp.url)}" target="_blank" rel="noopener">${esc(dp.source)}</a> · as of ${asOf}.</p></div>`;
+        <div class="dp-years">${years}</div></div>`;
   }
 
   // Aggregate franchise hub (#/team/OKC, no season) — all-time totals + a clickable table of
@@ -2586,7 +2584,7 @@
       const btn = document.createElement("button");
       btn.type = "button"; btn.className = "btn show-more-btn";   // reuse the shared .btn component
       bar.appendChild(btn);
-      wrap.insertAdjacentElement("afterend", bar);
+      (wrap.closest(".card") || wrap).insertAdjacentElement("afterend", bar);   // sit below the card, like the players table's Show more
       const set = (collapsed) => {
         rows.forEach((r, i) => r.classList.toggle("tr-collapsed", collapsed && i >= COLLAPSE_LIMIT));
         btn.setAttribute("aria-expanded", String(!collapsed));

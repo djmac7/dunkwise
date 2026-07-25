@@ -284,8 +284,8 @@ table.ref .season{font-weight:600;color:var(--ink)}
    Rows past the preview limit hide behind a centered Show-more toggle (collapseLongTables).
    The button reuses the shared .btn component; here we just make it full-width + rotate the chevron. */
 .tr-collapsed{display:none}
-.show-more{margin-top:12px}
-.show-more-btn{width:100%;justify-content:center;cursor:pointer}
+.show-more{margin-top:16px;display:flex;justify-content:center}
+.show-more-btn{justify-content:center;cursor:pointer}
 .show-more-btn svg{width:15px;height:15px;transition:transform .2s ease}
 .show-more-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
 /* franchise hub: era-grouped history table + past-names line */

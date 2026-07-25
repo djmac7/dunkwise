@@ -1,0 +1,50 @@
+name: sync-adstxt
+
+# Keep /ads.txt in sync with rev.iq's authoritative list. GitHub Pages can't
+# HTTP-redirect a static .txt, so we mirror it here. Commits only when it changes;
+# deploy-pages redeploys afterward (see its workflow_run trigger).
+
+on:
+  schedule:
+    - cron: "17 9 * * *"      # daily ~09:17 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: sync-adstxt
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch rev.iq ads.txt (validated)
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp)"
+          code="$(curl -sS -L --max-time 30 -o "$tmp" -w '%{http_code}' https://rev.iq/dunkwise.com/ads.txt)"
+          # Never overwrite a good file with an error page, redirect stub, or empty body.
+          [ "$code" = "200" ] || { echo "::error::fetch returned HTTP $code"; exit 1; }
+          head -1 "$tmp" | grep -qiE '<!doctype|<html' && { echo "::error::got HTML, not ads.txt"; exit 1; }
+          grep -q 'ownerdomain=dunkwise.com' "$tmp" || { echo "::error::missing ownerdomain marker"; exit 1; }
+          [ "$(wc -l < "$tmp")" -ge 50 ] || { echo "::error::suspiciously short ($(wc -l < "$tmp") lines)"; exit 1; }
+          {
+            echo "# Synced copy of https://rev.iq/dunkwise.com/ads.txt — the source of truth."
+            echo "# Auto-synced daily by .github/workflows/sync-adstxt.yml; do not edit here (update at rev.iq)."
+            echo
+            tr -d '\r' < "$tmp"
+          } > ads.txt
+      - name: Commit if changed
+        run: |
+          git config user.name  "dunkwise-bot"
+          git config user.email "dunkwise-bot@users.noreply.github.com"
+          git add ads.txt
+          if git diff --cached --quiet; then
+            echo "ads.txt unchanged."
+          else
+            git commit -m "chore(ads): sync ads.txt from rev.iq $(date -u +%Y-%m-%d)"
+            git push
+          fi
