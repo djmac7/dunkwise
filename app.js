@@ -42,6 +42,8 @@
   const getPGames = (pid) => j(`data/pgames/${pid}.json?v=${V}`);
   const getTwoK = () => j(`data/twok.json?v=${V}`);
   const getTwoKHist = () => j(`data/twok_history.json?v=${V}`).catch(() => null);
+  let _dpCache = null;
+  const getDraftPicks = () => _dpCache ? Promise.resolve(_dpCache) : j(`data/draft_picks.json?v=${V}`).then((d) => (_dpCache = d)).catch(() => (_dpCache = {}));
   const getInjuries = () => jl(`data/injuries.json`);
   const getStatus = () => jl(`data/status.json`);
   const getOdds = () => jl(`data/odds.json`);
@@ -1870,12 +1872,64 @@
   }
 
   /* ================= TEAM ================= */
+  // Future draft-pick ledger for a franchise (RealGM data) — what firsts and seconds the club
+  // controls through 2033, incoming picks, swap rights and protections. Keyed by modern abbr.
+  // `note` blocks are RealGM's own phrasing (abbrs already normalised to the site's convention);
+  // a "0" count is a pick owed away, shown muted. Returns "" when no ledger exists for the team.
+  function draftPicksCard(ab, dp) {
+    const team = dp && dp.teams && dp.teams[ab];
+    if (!team || !team.rows || !team.rows.length) return "";
+    const yr0 = dp.years[0], yr1 = dp.years[dp.years.length - 1];
+    // RealGM's "g + c" count (e.g. "1+2") = guaranteed + conditional picks. Rather than
+    // print that arithmetic, we spend it as ordering: the first `g` assets in a cell are
+    // owned outright (solid mark), the rest are conditional (hollow mark). "0" = the pick
+    // is owed away. This turns the count into the visual, so the list itself reads as one.
+    const splitN = (n) => { const p = String(n).split("+").map((x) => parseInt(x, 10) || 0); return { g: p[0] || 0, c: p.slice(1).reduce((a, b) => a + b, 0) }; };
+    // One asset → collapse wrapped lines, drop the trailing ";", lift the leading identity
+    // (Own / a team abbr) out as an emphasised token, and dim the routing + editor clauses.
+    const fmtPick = (t) => {
+      let s = esc(t.replace(/\s*\n+\s*/g, " ").trim().replace(/;\s*$/, ""));
+      s = s.replace(/^(Own)\b/, '<b class="dp-lead">$1</b>')
+           .replace(/^([A-Z]{2,3})\b/, '<span class="dp-tm">$1</span>');
+      return s.replace(/\((?:via|by swap)[^)]*\)/gi, '<span class="dp-via">$&</span>')
+              .replace(/\[[^\]]*\]/g, '<span class="dp-via">$&</span>');
+    };
+    const cell = (c) => {
+      const blocks = (c.note || "").split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
+      const picks = blocks.filter((b) => !b.startsWith("*"));       // the assets
+      const notes = blocks.filter((b) => b.startsWith("*"));        // asterisked caveats
+      const out = c.n === "0", { g } = splitN(c.n);
+      let owned = 0;   // only picks the team keeps consume the guaranteed budget, not ones owed away
+      const items = picks.length
+        ? picks.map((p) => {
+            let type;
+            if (out || /^To\b/.test(p)) type = "out";
+            else { type = owned < g ? "own" : "cond"; owned++; }
+            return `<li class="dp-p ${type}">${fmtPick(p)}</li>`;
+          }).join("")
+        : `<li class="dp-p empty">—</li>`;
+      const fn = notes.length ? `<div class="dp-fn">${notes.map((n) => esc(n.replace(/\s*\n+\s*/g, " ").replace(/^\*\s*/, ""))).join("<br>")}</div>` : "";
+      return `<td class="dp-c"><ul class="dp-picks">${items}</ul>${fn}</td>`;
+    };
+    const rows = team.rows.map((r) => `<tr><td class="l dp-yr">${r.y}</td>${cell(r.r1)}${cell(r.r2)}</tr>`).join("");
+    const asOf = (() => { try { const [y, mo, d] = dp.asOf.split("-"); return `${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+mo - 1]} ${+d}, ${y}`; } catch { return dp.asOf; } })();
+    return `<div class="section-title" style="margin-top:26px"><div><span class="eyebrow">Owned, incoming, swaps &amp; protections · ${yr0}–${yr1}</span><h2>Future draft picks</h2></div>
+        <span class="eyebrow">${team.firsts} first${team.firsts === 1 ? "" : "s"} · ${team.seconds} second${team.seconds === 1 ? "" : "s"}</span></div>
+      <div class="card">
+        <div class="dp-legend"><span class="dp-p own">Owned</span><span class="dp-p cond">Conditional</span><span class="dp-p out">Traded away</span></div>
+        <div class="tbl-wrap"><table class="ref dp-tbl" style="min-width:560px">
+        <thead><tr><th class="l">Year</th><th class="l">First round</th><th class="l">Second round</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+        <p class="muted dp-src">Source: <a href="${esc(dp.url)}" target="_blank" rel="noopener">${esc(dp.source)}</a> · as of ${asOf}.</p></div>`;
+  }
+
   // Aggregate franchise hub (#/team/OKC, no season) — all-time totals + a clickable table of
   // every season across the franchise's whole lineage, grouped by era name.
   async function renderTeamHub(ab, t) {
     const m = tMeta(ab), color = tColor(ab), conf = m ? m.conf : null;
     const seasons = t.seasons || [];
     const ttRow = await getTeamsTable().then((d) => d.rows.find((r) => r.i === ab)).catch(() => null);
+    const dp = await getDraftPicks().catch(() => null);
     const sal = await getSalaries().catch(() => null);
     const pay = mergePayroll(sal, await franchiseAbbrs(ab));   // sum across the whole lineage
     const hasPay = Object.keys(pay).length > 0;
@@ -1959,6 +2013,7 @@
       <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
         <thead><tr><th class="l">Season</th><th>W</th><th>L</th><th>PCT</th><th>ORtg</th><th>DRtg</th>${hasPay ? "<th>Payroll</th>" : ""}<th class="l">Result</th></tr></thead>
         <tbody>${body}</tbody></table></div></div>
+      ${draftPicksCard(ab, dp)}
       <div id="teamNews" style="margin-top:24px"></div>
     </div>`;
     teamNews(ab).then((html) => { const el = $("#teamNews"); if (el && html) el.innerHTML = html; });

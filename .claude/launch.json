@@ -12,6 +12,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8778"],
       "port": 8778
+    },
+    {
+      "name": "verify-server",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8781"],
+      "port": 8781
     }
   ]
 }

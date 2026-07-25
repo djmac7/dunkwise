@@ -237,6 +237,38 @@ table.ref .season{font-weight:600;color:var(--ink)}
 .fut-tag{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;font-weight:600;color:var(--accent-deep);background:var(--accent-wash);border:1px solid var(--accent-soft);border-radius:5px;padding:1px 5px;vertical-align:middle}
 .champ-badge{flex:none;font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;font-weight:600;color:var(--accent-deep);background:var(--accent-wash);border:1px solid var(--accent-soft);border-radius:5px;padding:1px 5px}
 .titles-cell{font-weight:700;color:var(--accent-deep)}
+/* future draft-pick ledger (team hub). Each pick is its own line, typed by a leading mark
+   instead of a count chip: a solid square = owned outright, a hollow ring = conditional
+   (protected / swap / "if"), an arrow = a pick owed away. The source team leads each line;
+   routing and conditions are dimmed. Selector is qualified with `table` to out-specify
+   table.ref's right-aligned, nowrap numeric cells. */
+table.dp-tbl td{white-space:normal;vertical-align:top;text-align:left;padding:16px}
+table.dp-tbl td.dp-yr{font-family:var(--serif);font-size:15px;color:var(--ink);font-weight:600;width:1%;white-space:nowrap;padding-top:12px}
+table.dp-tbl tbody tr:hover td{background:transparent}   /* tall reference rows, not clickable — no hover flash */
+.dp-picks{list-style:none;margin:0;padding:0;font-family:var(--sans);font-size:12.5px;line-height:1.55;color:var(--ink-2)}
+.dp-p{position:relative;padding-left:19px;margin:0 0 12px}
+.dp-p:last-child{margin-bottom:0}
+/* marks */
+.dp-p::before{content:"";position:absolute;left:1px;top:6px;width:7px;height:7px;box-sizing:border-box}
+.dp-p.own::before{background:var(--accent);border-radius:2px}                       /* ■ owned outright */
+.dp-p.cond::before{border:1.5px solid var(--ink-4);border-radius:50%;background:none}/* ○ conditional */
+.dp-p.out{color:var(--ink-3)}
+.dp-p.out::before{content:"→";left:0;top:-1px;width:auto;height:auto;color:var(--ink-4);font-size:12px;font-weight:600}
+.dp-p.empty{padding-left:0;color:var(--ink-4)}
+.dp-p.empty::before{display:none}
+/* leading identity + dimmed clauses */
+.dp-lead{color:var(--ink);font-weight:600}
+.dp-tm{font-family:var(--mono);font-weight:600;font-size:11.5px;color:var(--ink);letter-spacing:.01em}
+.dp-p.out .dp-lead,.dp-p.out .dp-tm{color:var(--ink-3);font-weight:500}
+.dp-via{color:var(--ink-4)}
+.dp-fn{margin-top:8px;padding-left:18px;position:relative;font-family:var(--sans);font-size:11px;line-height:1.45;color:var(--ink-3)}
+.dp-fn::before{content:"*";position:absolute;left:6px;top:0;color:var(--ink-4)}
+/* legend */
+.dp-legend{display:flex;flex-wrap:wrap;gap:20px;padding:2px 16px 14px;border-bottom:1px solid var(--line-soft);margin-bottom:2px}
+.dp-legend .dp-p{margin:0;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.dp-legend .dp-p::before{top:3px}
+.dp-legend .dp-p.out::before{top:-1px}
+.dp-src{font-size:11.5px;margin:12px 16px 3px}
 /* franchise hub: era-grouped history table + past-names line */
 /* Franchise name history — a vertical timeline, one node per era, each wearing the
    logo the club actually used then. Was a bare list floating between cards, which

@@ -1,13 +1,22 @@
 name: Deploy to GitHub Pages
 
 # Publishes the static site to GitHub Pages via the Actions artifact path
-# (the legacy Jekyll builder can't handle this many files). Runs on every push
-# to main — including the automated data-refresh commits — so the live site
-# always reflects the latest data.
+# (the legacy Jekyll builder can't handle this many files).
+#
+# Triggers:
+#  - push to main: human commits redeploy immediately.
+#  - workflow_run: the data bot pushes its refresh commits with the built-in
+#    GITHUB_TOKEN, and GitHub will NOT start a `push`-triggered run from a
+#    GITHUB_TOKEN push (recursion guard). Without this, automated data commits
+#    land in the repo but the live site never rebuilds. Redeploying when a
+#    refresh workflow completes is not subject to that suppression.
 
 on:
   push:
     branches: [main]
+  workflow_run:
+    workflows: [refresh-live, refresh-daily, refresh-picks]
+    types: [completed]
   workflow_dispatch: {}
 
 permissions:

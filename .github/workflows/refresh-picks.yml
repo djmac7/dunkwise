@@ -1,0 +1,59 @@
+name: refresh-picks
+
+# Weekly: re-harvest the future draft-pick ledger (data/draft_picks.json) from RealGM.
+# Picks only change on trades, so once a week is plenty. RealGM sits behind a Cloudflare
+# JS challenge that only a *headful* real browser clears, so we drive Playwright Chromium
+# under Xvfb. If Cloudflare blocks the runner's datacenter IP, fetch_draft_picks.py exits
+# non-zero without overwriting — the last-good data stays live and the run just shows red.
+# (Fallback if CI is persistently blocked: run `python3 build/fetch_draft_picks.py` locally.)
+
+on:
+  schedule:
+    - cron: "17 9 * * 1"      # Mondays 09:17 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: refresh-picks
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Playwright + Chromium
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Harvest draft picks (headful via Xvfb — Cloudflare needs a real browser)
+        run: xvfb-run -a python build/fetch_draft_picks.py
+      - name: Regenerate team SEO pages
+        run: |
+          python - <<'PY'
+          import json, sys
+          sys.argv = ["x", "0"]; sys.path.insert(0, "build")
+          import build_seo as b
+          for f in sorted((b.DATA / "team").glob("*.json")):
+              t = json.load(open(f))
+              (b.ROOT / "teams" / f"{t['abbr']}.html").write_text(b.render_team(t["abbr"], t), encoding="utf-8")
+          print("team pages regenerated")
+          PY
+      - name: Validate data (block bad refreshes)
+        run: python build/validate_data.py
+      - name: Commit if changed
+        run: |
+          git config user.name  "dunkwise-bot"
+          git config user.email "dunkwise-bot@users.noreply.github.com"
+          git add data/draft_picks.json build/draft_picks_raw.json teams/
+          if git diff --cached --quiet; then
+            echo "No pick changes."
+          else
+            git commit -m "chore(data): refresh draft picks $(date -u +%Y-%m-%d)"
+            git push
+          fi
