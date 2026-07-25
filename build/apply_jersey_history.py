@@ -96,9 +96,13 @@ for f in glob.glob(os.path.join(DATA, "player", "*.json")):
         clean = acc                   # franchise map can't bridge) -> keep original, never nuke
         d_here = 0
     dropped += d_here
-    # order by seasons worn (desc) so the number they're known for leads
-    hist = sorted(clean.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+    # order by distinct seasons worn (desc), then most-recent — the number they're most
+    # known for leads. Derive the displayed primary number from this same reconciled
+    # history so bio.num can never contradict the jersey timeline shown beside it.
+    hist = sorted(clean.items(), key=lambda kv: (-len({s for s, _t in kv[1]}), -max(s for s, _t in kv[1])))
     b["numHist"] = [{"n": n, "sp": spans(e)} for n, e in hist]
+    if hist:
+        b["num"] = hist[0][0]
     json.dump(d, open(f, "w"), separators=(",", ":"), ensure_ascii=False)
     written += 1
 
