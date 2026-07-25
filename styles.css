@@ -1409,6 +1409,45 @@ body.pt-sheet-open{overflow:hidden}
 .pt-apply-sm{width:auto;flex:1}
 .pt-mini-link{background:none;border:0;color:var(--ink-3);font-size:12.5px;cursor:pointer;padding:0 4px;white-space:nowrap}
 .pt-mini-link:hover{color:var(--accent-deep)}
+/* ---- Linear-style advanced filtering: is/is not, group pills, nested-group builder ---- */
+/* "is / is not" segmented toggle (enum + date editors) */
+.pt-opsel{display:inline-flex;gap:2px;margin:0 8px 8px;padding:2px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel-2);width:max-content}
+.pt-opseg{border:0;background:none;color:var(--ink-3);font-size:12.5px;font-weight:500;padding:4px 12px;border-radius:6px;cursor:pointer;transition:.12s}
+.pt-opseg:hover{color:var(--ink)}
+.pt-opseg.on{background:var(--accent-fill);color:var(--on-accent)}
+.pt-opseg:focus-visible{outline:none;box-shadow:var(--pt-ring)}
+/* a nested group shown in the toolbar as one summary pill */
+.pt-pill-grp{border-style:solid;padding-left:9px}
+.pt-pill-ic{color:var(--accent-deep);flex:none;margin-right:1px}
+/* the "Advanced filter" shortcut at the top of the add-filter menu */
+.pt-mi-adv .pt-mi-l{gap:8px;font-weight:500}
+.pt-mi-ic{color:var(--accent-deep);flex:none}
+.pt-mi-sep{height:1px;margin:4px 6px;background:var(--line)}
+/* the builder panel + its recursive group boxes */
+.pt-panel.pt-adv{padding:8px 10px 10px}
+.pt-adv-body{max-height:min(60vh,440px);overflow:auto;padding:2px 2px 0}
+.pt-grp{border:1px solid var(--line-strong);border-radius:10px;padding:9px 9px 7px;background:var(--panel-2)}
+.pt-grp-root{border:0;background:none;padding:0}
+.pt-brow{display:flex;align-items:flex-start;gap:6px;margin-bottom:5px}
+.pt-brow>:first-child{flex:none;width:56px;display:flex;justify-content:flex-end;padding-top:6px}
+.pt-blead{font-family:var(--mono);font-size:11px;color:var(--ink-4);letter-spacing:.02em}
+.pt-bnode{flex:1;min-width:0}
+.pt-bjoin{margin:0}
+.pt-cond{display:inline-flex;align-items:center;gap:3px;max-width:100%;height:32px;padding:0 4px 0 11px;border:1px solid var(--accent-soft);border-radius:8px;background:var(--accent-wash)}
+.pt-cond-b{border:0;background:none;color:var(--ink);font:inherit;font-size:13px;cursor:pointer;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pt-cond-b:hover{color:var(--accent-deep)}
+.pt-cond-x{display:grid;place-items:center;width:19px;height:19px;border:0;background:none;border-radius:5px;color:var(--ink-3);cursor:pointer;flex:none}
+.pt-cond-x:hover{background:var(--accent-fill);color:var(--on-accent)}
+.pt-bempty{padding:5px 0 8px 62px;color:var(--ink-4);font-size:12.5px}
+.pt-grp-foot{display:flex;align-items:center;gap:6px;margin-top:3px;padding-left:62px}
+.pt-badd{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border:1px dashed var(--line-strong);border-radius:8px;background:transparent;color:var(--ink-2);font-size:12.5px;font-weight:500;cursor:pointer;transition:.14s}
+.pt-badd:hover{color:var(--ink);border-color:var(--accent);background:var(--accent-wash)}
+.pt-badd svg{color:var(--ink-4)}
+.pt-badd:hover svg{color:var(--accent-deep)}
+.pt-badd:focus-visible{outline:none;border-color:var(--accent);box-shadow:var(--pt-ring)}
+.pt-grp-x{margin-left:auto;display:grid;place-items:center;width:26px;height:26px;border:0;background:none;border-radius:6px;color:var(--ink-4);cursor:pointer}
+.pt-grp-x:hover{background:var(--panel);color:var(--ink)}
+.pt-sheet.pt-adv .pt-adv-body{flex:1 1 auto;max-height:none;min-height:0}
 /* table header sorting — arrow appears on hover to signal a column is sortable */
 .pt-table th[data-k]{cursor:pointer;user-select:none;white-space:nowrap;transition:color .12s}
 .pt-table th[data-k]:hover{color:var(--ink)}

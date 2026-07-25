@@ -2404,10 +2404,17 @@
     // a view is "shareable" when the query/filters/sort differ from default. Column choice is a
     // persistent personal preference (localStorage), so it shouldn't make every page look active —
     // but if the view IS shareable, carry the columns along too.
-    const active = PT.q || PT.filters.length || (s && (s.k !== d.k || s.dir !== d.dir));
+    const hasFilters = PT.root.kids.length > 0;
+    const active = PT.q || hasFilters || (s && (s.k !== d.k || s.dir !== d.dir));
     const base = "#/" + PT.basePath;
     if (!active) { if (location.hash !== base) history.replaceState(null, "", base); return; }
-    const payload = { q: PT.q || undefined, f: PT.filters.length ? PT.filters : undefined, j: PT.join === "or" ? "or" : undefined, s: PT.sort, c: colsCustom ? PT.visCols : undefined };
+    const payload = { q: PT.q || undefined, s: PT.sort, c: colsCustom ? PT.visCols : undefined };
+    // flat groups keep the legacy {f,j} shape (byte-for-byte compatible with old shared links);
+    // once a nested group exists, serialize the whole tree under `g` instead.
+    if (hasFilters) {
+      if (ptFlat(PT.root)) { payload.f = PT.root.kids; if (PT.root.join === "or") payload.j = "or"; }
+      else payload.g = PT.root;
+    }
     history.replaceState(null, "", base + "?v=" + encodeURIComponent(JSON.stringify(payload)));
   }
   const ptCol = (k) => PT.cfg.cols.find((c) => c.k === k);
@@ -2464,13 +2471,22 @@
   }
   function ptPillText(f) {
     const c = ptCol(f.k);
-    if (c.type === "enum") { const shown = f.vals.slice(0, 2).map((v) => ptFmtVal(c, v)).join(", "); return `${c.label} is ${shown}${f.vals.length > 2 ? " +" + (f.vals.length - 2) : ""}`; }
+    const is = f.neg ? "is not" : "is";
+    if (c.type === "enum") { const shown = f.vals.slice(0, 2).map((v) => ptFmtVal(c, v)).join(", "); return `${c.label} ${is} ${shown}${f.vals.length > 2 ? " +" + (f.vals.length - 2) : ""}`; }
     if (c.type === "bool") return `${c.label}: ${c.boolLabels[f.vals[0] ? 0 : 1]}`;
-    if (c.type === "date") return `${c.label} ${f.vals[0] === "0000-01-01" ? "any" : fmtDate(f.vals[0])} – ${f.vals[1] === "9999-12-31" ? "any" : fmtDate(f.vals[1])}`;
+    if (c.type === "date") return `${c.label} ${f.neg ? "not " : ""}${f.vals[0] === "0000-01-01" ? "any" : fmtDate(f.vals[0])} – ${f.vals[1] === "9999-12-31" ? "any" : fmtDate(f.vals[1])}`;
     if (f.op === "between") return `${c.label} ${ptFmtVal(c, f.vals[0])}–${ptFmtVal(c, f.vals[1])}`;
     return `${c.label} ${OPLABEL[f.op]} ${ptFmtVal(c, f.vals[0])}`;
   }
-  // does a single filter match a row? (the per-condition test, combinator-agnostic)
+  // summary label for a group pill in the toolbar, e.g. "Points/g ≥ 25 or 2 more"
+  function ptGroupPillText(g) {
+    const leaves = [];
+    (function walk(x) { x.kids.forEach((n) => (ptIsGroup(n) ? walk(n) : leaves.push(n))); })(g);
+    if (!leaves.length) return "Empty group";
+    const more = leaves.length - 1;
+    return more ? `${ptPillText(leaves[0])} ${g.join === "or" ? "or" : "and"} ${more} more` : ptPillText(leaves[0]);
+  }
+  // does a single filter match a row? (the per-condition test, before "is not" negation)
   function ptFilterMatch(r, f) {
     const c = ptCol(f.k);
     if (!c) return true;                       // unknown key (e.g. stale shared URL) — ignore
@@ -2486,12 +2502,18 @@
     if (f.op === "between") return v >= f.vals[0] && v <= f.vals[1];
     return true;
   }
+  // condition test with "is not" applied — unknown keys stay ignored (never negated)
+  const ptCondMatch = (r, f) => ptCol(f.k) ? (f.neg ? !ptFilterMatch(r, f) : ptFilterMatch(r, f)) : true;
+  // recursively evaluate a group: OR → any child matches, AND → every child must; empty ⇒ match all
+  function ptMatchGroup(r, g) {
+    if (!g.kids.length) return true;
+    const test = (n) => (ptIsGroup(n) ? ptMatchGroup(r, n) : ptCondMatch(r, n));
+    return g.join === "or" ? g.kids.some(test) : g.kids.every(test);
+  }
   function ptMatch(r) {
     // text search is always a separate AND gate (Linear keeps search out of the filter group)
     if (PT.q && !PT.cfg.search(r, PT.q.toLowerCase())) return false;
-    if (!PT.filters.length) return true;
-    // the group's combinator: "or" → any condition matches, else "and" → every one must
-    return PT.join === "or" ? PT.filters.some((f) => ptFilterMatch(r, f)) : PT.filters.every((f) => ptFilterMatch(r, f));
+    return ptMatchGroup(r, PT.root);
   }
   function ptResults() {
     const rows = PT.data.filter(ptMatch);
@@ -2662,37 +2684,44 @@
     tb.innerHTML = rows.slice(0, PT.shown).map((r) => { const href = PT.cfg.link(r); return `<tr class="${href ? "clickable" : ""}"${href ? ` onclick="location.hash='${href}'"` : ""}>${cols.map((c) => `<td class="${c.cls || ""}${c.hi ? " hi" : ""}">${ptCell(c, r)}</td>`).join("")}</tr>`; }).join("")
       || `<tr class="pt-empty-row"><td colspan="${cols.length}"><div class="pt-empty"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><b>No ${esc(PT.cfg.nounPl)} match</b><span>Try loosening a filter or clearing your search.</span><button class="pt-empty-clear" id="ptClear2">Clear all filters</button></div></td></tr>`;
     // result count: "X of Y" once anything is narrowing the set, else plain total
-    const total = PT.data.length, n = rows.length, active = PT.q || PT.filters.length;
+    const total = PT.data.length, n = rows.length, active = PT.q || PT.root.kids.length;
     $("#ptCount").innerHTML = active && n !== total
       ? `<b>${n.toLocaleString()}</b> of ${total.toLocaleString()} ${esc(PT.cfg.nounPl)}`
       : `${n.toLocaleString()} ${esc(n === 1 ? PT.cfg.noun : PT.cfg.nounPl)}`;
     const more = $("#ptMore"); if (more) more.hidden = rows.length <= PT.shown;
-    const c2 = $("#ptClear2"); if (c2) c2.addEventListener("click", (e) => { e.preventDefault(); PT.q = ""; PT.filters = []; PT.join = "and"; const qi = $("#ptQ"); if (qi) qi.value = ""; ptRerender(); });
+    const c2 = $("#ptClear2"); if (c2) c2.addEventListener("click", (e) => { e.preventDefault(); PT.q = ""; PT.root = { join: "and", kids: [] }; const qi = $("#ptQ"); if (qi) qi.value = ""; ptRerender(); });
   }
   function ptRerender() {
     // pills — clicking the body edits, clicking the ✕ removes
     // Between pills sits the group combinator: the first gap is a clickable and/or toggle,
     // the rest mirror it as static text (Linear-style — one combinator governs the whole group).
-    const joinWord = PT.join === "or" ? "or" : "and";
-    $("#ptPills").innerHTML = PT.filters.map((f, i) => {
+    // toolbar pills = the root group's direct children. A condition kid renders as an
+    // editable pill; a nested group kid renders as one summary pill that opens the builder.
+    const kids = PT.root.kids, joinWord = PT.root.join === "or" ? "or" : "and";
+    $("#ptPills").innerHTML = kids.map((n, i) => {
       const conn = i === 0 ? "" : i === 1
         ? `<button class="pt-join" data-join type="button" title="Match all filters (and) or any (or)" aria-label="Switch between matching all or any filters">${joinWord}</button>`
         : `<span class="pt-join pt-join-static" aria-hidden="true">${joinWord}</span>`;
-      return `${conn}<button class="pt-pill" data-i="${i}" title="Edit filter">${esc(ptPillText(f))}<span class="x" data-rm="${i}" role="button" aria-label="Remove filter"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button>`;
+      const grp = ptIsGroup(n);
+      const label = grp ? ptGroupPillText(n) : ptPillText(n);
+      return `${conn}<button class="pt-pill${grp ? " pt-pill-grp" : ""}" data-i="${i}" title="${grp ? "Edit group" : "Edit filter"}">${grp ? '<svg class="pt-pill-ic" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h4M4 12h9M4 17h6"/><circle cx="18" cy="9" r="2"/><circle cx="18" cy="15" r="2"/></svg>' : ""}${esc(label)}<span class="x" data-rm="${i}" role="button" aria-label="Remove filter"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button>`;
     }).join("");
-    $("#ptReset").hidden = !(PT.filters.length || PT.q);
-    const badge = $("#ptAddBadge"); if (badge) { badge.textContent = PT.filters.length || ""; badge.hidden = !PT.filters.length; }
-    const add = $("#ptAdd"); if (add) add.classList.toggle("on", !!PT.filters.length);
+    const leaves = ptCountLeaves(PT.root);
+    $("#ptReset").hidden = !(kids.length || PT.q);
+    const badge = $("#ptAddBadge"); if (badge) { badge.textContent = leaves || ""; badge.hidden = !leaves; }
+    const add = $("#ptAdd"); if (add) add.classList.toggle("on", !!kids.length);
     // header sort arrows
     $$("#ptHead th[data-k]").forEach((th) => { const on = th.dataset.k === PT.sort.k; th.classList.toggle("sorted", on); th.setAttribute("aria-sort", on ? (PT.sort.dir < 0 ? "descending" : "ascending") : "none"); });
     const rows = ptResults();
     ptRenderBody(rows);
     const jt = $("#ptPills .pt-join[data-join]");
-    if (jt) jt.addEventListener("click", () => { PT.join = PT.join === "or" ? "and" : "or"; ptRerender(); });
+    if (jt) jt.addEventListener("click", () => { PT.root.join = PT.root.join === "or" ? "and" : "or"; ptRerender(); });
     $$("#ptPills .pt-pill").forEach((p) => p.addEventListener("click", (e) => {
       const rm = e.target.closest("[data-rm]");
-      if (rm) { PT.filters.splice(+rm.dataset.rm, 1); ptRerender(); return; }
-      ptOpenEditor(ptCol(PT.filters[+p.dataset.i].k), +p.dataset.i, p);
+      if (rm) { ptRemoveAt([+rm.dataset.rm]); ptRerender(); return; }
+      const i = +p.dataset.i, node = PT.root.kids[i];
+      if (ptIsGroup(node)) ptOpenBuilder(p);
+      else ptOpenEditor(ptCol(node.k), { edit: [i] }, p);
     }));
     ptSyncUrl();
     const sh = $("#ptShare"); if (sh) sh.hidden = location.hash.indexOf("?v=") < 0;   // shareable only when the view is customized
@@ -2711,9 +2740,10 @@
   }
   function ptOutside(e) { const p = $("#ptPanel"); if (p && !p.contains(e.target) && !e.target.closest("#ptAdd,#ptCols,.pt-pill")) ptClosePanel(); }
   function ptPanelKey(e) { if (e.key === "Escape") { e.stopPropagation(); ptClosePanel(); } }
-  function ptPanel(anchor, html) {
+  function ptPanel(anchor, html, opts) {
+    opts = opts || {};
     ptClosePanel();
-    const p = document.createElement("div"); p.id = "ptPanel"; p.className = "pt-panel"; p.innerHTML = html;
+    const p = document.createElement("div"); p.id = "ptPanel"; p.className = "pt-panel" + (opts.cls ? " " + opts.cls : ""); p.innerHTML = html;
     if (ptIsSheet()) {
       p.classList.add("pt-sheet");
       p.insertAdjacentHTML("afterbegin", '<div class="pt-grab" aria-hidden="true"></div>');
@@ -2728,7 +2758,7 @@
     document.body.appendChild(p);
     const rc = anchor.getBoundingClientRect();
     // clamp within the viewport on both axes (mobile: keep the panel on-screen and scrollable)
-    const gap = 6, maxW = Math.min(320, window.innerWidth - 20);
+    const gap = 6, maxW = Math.min(opts.wide ? 460 : 320, window.innerWidth - 20);
     p.style.maxWidth = maxW + "px";
     const left = Math.max(10, Math.min(rc.left + window.scrollX, window.innerWidth - p.offsetWidth - 10));
     let top = rc.bottom + window.scrollY + gap;
@@ -2740,13 +2770,20 @@
     return p;
   }
   const PT_TYPEHINT = { enum: "list", bool: "yes / no", num: "number", pct: "percent", money: "salary", date: "date", text: "text" };
-  function ptOpenMenu(anchor) {
+  // `addTarget` names where a picked field lands: { add:<groupPath>, back?:true }. Default
+  // appends to the root group. When `back` is set (opened from the builder) the builder reopens
+  // after the value is committed, and the "Advanced filter" shortcut is hidden.
+  function ptOpenMenu(anchor, addTarget) {
+    addTarget = addTarget || { add: [] };
+    const inBuilder = !!addTarget.back;
     const cols = PT.cfg.cols.filter((c) => c.type !== "text" && c.filt !== false);
-    const active = new Set(PT.filters.map((f) => f.k));
+    const active = new Set(); (function walk(g) { g.kids.forEach((n) => (ptIsGroup(n) ? walk(n) : active.add(n.k))); })(PT.root);
     const item = (c) => `<button class="pt-mi" data-k="${c.k}"><span class="pt-mi-l">${esc(c.label)}${active.has(c.k) ? '<span class="pt-mi-on" title="Currently filtered"></span>' : ""}</span><span class="pt-mi-t">${PT_TYPEHINT[c.type] || ""}</span></button>`;
     const list = (f) => { const m = cols.filter((c) => !f || c.label.toLowerCase().includes(f)); return m.length ? m.map(item).join("") : `<div class="pt-mi-empty">No matching field</div>`; };
-    const p = ptPanel(anchor, `<div class="pt-panel-h">Add filter</div>${cols.length > 8 ? `<input class="pt-search" id="ptMenuSearch" placeholder="Find a field…" autocomplete="off" spellcheck="false">` : ""}<div class="pt-menu" id="ptMenuList">${list("")}</div>`);
-    const wire = () => $$(".pt-mi", p).forEach((b) => b.addEventListener("click", () => ptOpenEditor(ptCol(b.dataset.k), -1, anchor)));
+    const adv = inBuilder ? "" : `<button class="pt-mi pt-mi-adv" data-adv type="button"><span class="pt-mi-l"><svg class="pt-mi-ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h4M4 12h9M4 17h6"/><circle cx="18" cy="9" r="2"/><circle cx="18" cy="15" r="2"/></svg>Advanced filter</span><span class="pt-mi-t">groups</span></button><div class="pt-mi-sep" aria-hidden="true"></div>`;
+    const p = ptPanel(anchor, `<div class="pt-panel-h">${inBuilder ? "Add condition" : "Add filter"}</div>${adv}${cols.length > 8 ? `<input class="pt-search" id="ptMenuSearch" placeholder="Find a field…" autocomplete="off" spellcheck="false">` : ""}<div class="pt-menu" id="ptMenuList">${list("")}</div>`);
+    const av = $("[data-adv]", p); if (av) av.addEventListener("click", () => ptOpenBuilder(anchor));
+    const wire = () => $$(".pt-mi[data-k]", p).forEach((b) => b.addEventListener("click", () => ptOpenEditor(ptCol(b.dataset.k), addTarget, anchor)));
     wire();
     const s = $("#ptMenuSearch", p);
     if (s) { s.addEventListener("input", () => { $("#ptMenuList", p).innerHTML = list(s.value.toLowerCase().trim()); wire(); }); if (!ptIsSheet()) s.focus(); }
@@ -2767,19 +2804,27 @@
     if (input) return;
     p.addEventListener("keydown", (e) => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); move(e.key === "ArrowDown" ? 1 : -1); } });
   }
-  function ptOpenEditor(c, editIdx, anchor) {
-    const existing = editIdx >= 0 ? PT.filters[editIdx] : null;
+  // `target` = { edit:<path> } to replace an existing node, or { add:<groupPath> } to append a
+  // new one; `back:true` reopens the builder after commit. Editors for enum/date expose "is / is not".
+  function ptOpenEditor(c, target, anchor) {
+    const existing = target.edit ? ptNodeAt(target.edit) : null;
+    // a small "is / is not" segmented control, shared by enum + date editors
+    const negSeg = (neg) => `<div class="pt-opsel">${[["is", 0], ["is not", 1]].map(([lab, v]) => `<button type="button" class="pt-opseg${(neg ? 1 : 0) === v ? " on" : ""}" data-neg="${v}">${lab}</button>`).join("")}</div>`;
+    const wireNeg = (p, state) => $$(".pt-opseg", p).forEach((b) => b.addEventListener("click", () => { state.neg = +b.dataset.neg === 1; $$(".pt-opseg", p).forEach((x) => x.classList.toggle("on", x === b)); }));
     let body;
     if (c.type === "enum") {
+      const st = { neg: existing ? !!existing.neg : false };
       const opts = ptOptions(c), sel = new Set(existing ? existing.vals.map(String) : []);
       const olabel = (o) => (c.fmtVal ? c.fmtVal(o) : "" + o);
       const optHtml = (filter) => opts.filter((o) => !filter || ("" + olabel(o)).toLowerCase().includes(filter)).map((o) =>
         `<label class="pt-opt"><input type="checkbox" value="${esc("" + o)}" ${sel.has("" + o) ? "checked" : ""}><span class="pt-opt-l">${c.enumIcon === "team" ? teamLogo(o, "xs") + " " + esc(olabel(o)) : esc("" + olabel(o))}</span><svg class="pt-opt-ck" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></label>`).join("");
       body = `<div class="pt-panel-h pt-h-row"><span>${esc(c.label)}</span><span class="pt-sel-count" id="ptSelN"></span></div>
+        ${negSeg(st.neg)}
         ${opts.length > 8 ? `<input class="pt-search" id="ptOptSearch" placeholder="Search ${opts.length} options…" autocomplete="off" spellcheck="false">` : ""}
         <div class="pt-quick"><button class="pt-mini-link" id="ptOptAll" type="button">Select all</button><button class="pt-mini-link" id="ptOptNone" type="button">Clear</button></div>
         <div class="pt-opts" id="ptOpts">${optHtml("")}</div><div class="pt-actions"><button class="pt-apply" id="ptApply">Apply</button></div>`;
       const p = ptPanel(anchor, body);
+      wireNeg(p, st);
       const upd = () => { const n = $$("#ptOpts input:checked", p).length; const el = $("#ptSelN", p); el.textContent = n ? `${n} selected` : ""; };
       const os = $("#ptOptSearch", p); if (os) os.addEventListener("input", () => { $("#ptOpts", p).innerHTML = optHtml(os.value.toLowerCase().trim()); upd(); });
       p.addEventListener("change", upd); upd();
@@ -2787,24 +2832,25 @@
       $("#ptOptNone", p).addEventListener("click", () => { $$("#ptOpts input", p).forEach((i) => (i.checked = false)); upd(); });
       $("#ptApply", p).addEventListener("click", () => {
         const vals = $$("#ptOpts input:checked", p).map((i) => i.value);
-        ptCommit(editIdx, vals.length ? { k: c.k, op: "in", vals } : null); });
+        ptCommit(target, vals.length ? { k: c.k, op: "in", vals, neg: st.neg } : null); });
       if (os && !ptIsSheet()) os.focus();   // autofocus would raise the keyboard over the sheet
     } else if (c.type === "bool") {
-      const cur = existing ? existing.vals[0] : 1;
       body = `<div class="pt-panel-h">${esc(c.label)}</div><div class="pt-menu">
         <button class="pt-mi" data-v="1">${esc(c.boolLabels[0])}</button><button class="pt-mi" data-v="0">${esc(c.boolLabels[1])}</button></div>`;
       const p = ptPanel(anchor, body);
-      $$(".pt-mi", p).forEach((b) => b.addEventListener("click", () => ptCommit(editIdx, { k: c.k, op: "is", vals: [+b.dataset.v] })));
+      $$(".pt-mi", p).forEach((b) => b.addEventListener("click", () => ptCommit(target, { k: c.k, op: "is", vals: [+b.dataset.v] })));
     } else if (c.type === "date") {
+      const st = { neg: existing ? !!existing.neg : false };
       const v0 = existing ? existing.vals[0] : "", v1 = existing ? existing.vals[1] : "";
-      body = `<div class="pt-panel-h">${esc(c.label)}</div><div class="pt-num">
+      body = `<div class="pt-panel-h">${esc(c.label)}</div>${negSeg(st.neg)}<div class="pt-num">
         <div class="pt-num-in"><span class="pt-and">from</span><input id="ptD0" type="date" value="${v0 && v0 !== "0000-01-01" ? v0 : ""}"></div>
         <div class="pt-num-in"><span class="pt-and">to</span><input id="ptD1" type="date" value="${v1 && v1 !== "9999-12-31" ? v1 : ""}"></div></div>
         <div class="pt-actions"><button class="pt-apply" id="ptApply">Apply</button></div>`;
       const p = ptPanel(anchor, body);
+      wireNeg(p, st);
       $("#ptApply", p).addEventListener("click", () => {
         const d0 = $("#ptD0", p).value, d1 = $("#ptD1", p).value;
-        ptCommit(editIdx, (d0 || d1) ? { k: c.k, op: "daterange", vals: [d0 || "0000-01-01", d1 || "9999-12-31"] } : null);
+        ptCommit(target, (d0 || d1) ? { k: c.k, op: "daterange", vals: [d0 || "0000-01-01", d1 || "9999-12-31"], neg: st.neg } : null);
       });
     } else { // numeric
       const op = existing ? existing.op : "gte", v0 = existing ? existing.vals[0] : "", v1 = existing && existing.vals[1] != null ? existing.vals[1] : "";
@@ -2826,27 +2872,75 @@
         const raw0 = parseFloat($("#ptV0", p).value); if (isNaN(raw0)) return;
         const mul = c.inMul || 1, o = opSel.value, vals = [raw0 * mul];
         if (o === "between") { const raw1 = parseFloat($("#ptV1", p).value); if (isNaN(raw1)) return; vals.push(raw1 * mul); }
-        ptCommit(editIdx, { k: c.k, op: o, vals }); };
+        ptCommit(target, { k: c.k, op: o, vals }); };
       $("#ptApply", p).addEventListener("click", commit);
       p.addEventListener("keydown", (e) => { if (e.key === "Enter") commit(); });
       $("#ptV0", p).focus();
     }
   }
-  function ptCommit(editIdx, filter) {
-    if (filter) { if (editIdx >= 0) PT.filters[editIdx] = filter; else PT.filters.push(filter); }
-    else if (editIdx >= 0) PT.filters.splice(editIdx, 1);
+  // Apply an editor result to the tree. target.edit replaces (or, with a null filter, removes) the
+  // node at a path; target.add appends a new condition to a group. `back` reopens the builder after.
+  function ptCommit(target, filter) {
+    if (target.edit) { if (filter) ptSetAt(target.edit, filter); else ptRemoveAt(target.edit); }
+    else if (target.add && filter) ptInsertInto(target.add, filter);
     PT.shown = 80; ptClosePanel(); ptRerender();
+    if (target.back) ptOpenBuilder($("#ptAdd"));
+  }
+
+  // ---- advanced filter builder (nested groups) ----
+  // Renders the whole tree as nested boxes with per-group and/or toggles, + Filter / + Filter group,
+  // and remove controls — the Linear/Twenty "Advanced filter" panel. Reuses the shared floating panel.
+  function ptBuilderGroupHtml(g, path) {
+    const isRoot = path.length === 0, ps = path.join("."), joinWord = g.join === "or" ? "or" : "and";
+    const rows = g.kids.map((n, i) => {
+      const kp = path.concat(i).join(".");
+      const conn = i === 0 ? '<span class="pt-blead">' + (isRoot ? "Where" : "") + "</span>"
+        : i === 1 ? `<button type="button" class="pt-join pt-bjoin" data-gjoin="${ps}" title="Match all (and) or any (or)">${joinWord}</button>`
+        : `<span class="pt-join pt-join-static">${joinWord}</span>`;
+      const inner = ptIsGroup(n)
+        ? ptBuilderGroupHtml(n, path.concat(i))
+        : `<div class="pt-cond"><button type="button" class="pt-cond-b" data-edit="${kp}">${esc(ptPillText(n))}</button><button type="button" class="pt-cond-x" data-rm="${kp}" aria-label="Remove filter"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`;
+      return `<div class="pt-brow">${conn}<div class="pt-bnode">${inner}</div></div>`;
+    }).join("") || '<div class="pt-bempty">No conditions yet</div>';
+    return `<div class="pt-grp${isRoot ? " pt-grp-root" : ""}" data-grp="${ps}">
+      <div class="pt-grp-rows">${rows}</div>
+      <div class="pt-grp-foot">
+        <button type="button" class="pt-badd" data-addf="${ps}"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Filter</button>
+        <button type="button" class="pt-badd" data-addg="${ps}"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg>Filter group</button>
+        ${isRoot ? "" : `<button type="button" class="pt-grp-x" data-rmg="${ps}" title="Remove this group"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`}
+      </div></div>`;
+  }
+  function ptBuilderRender(p) { $(".pt-adv-body", p).innerHTML = ptBuilderGroupHtml(PT.root, []); ptBuilderWire(p); }
+  function ptBuilderWire(p) {
+    // in-place edits (toggle/add-group/remove) apply live and re-render the builder without closing it;
+    // add-condition and edit drill into the shared menu/editor, which reopen the builder on commit.
+    const refresh = () => { ptRerender(); ptBuilderRender(p); };
+    $$("[data-gjoin]", p).forEach((b) => b.addEventListener("click", () => { const g = ptNodeAt(ptPath(b.dataset.gjoin)); g.join = g.join === "or" ? "and" : "or"; refresh(); }));
+    $$("[data-rm]", p).forEach((b) => b.addEventListener("click", () => { ptRemoveAt(ptPath(b.dataset.rm)); refresh(); }));
+    $$("[data-rmg]", p).forEach((b) => b.addEventListener("click", () => { ptRemoveAt(ptPath(b.dataset.rmg)); refresh(); }));
+    $$("[data-addg]", p).forEach((b) => b.addEventListener("click", () => { ptInsertInto(ptPath(b.dataset.addg), { join: "and", kids: [] }); refresh(); }));
+    $$("[data-addf]", p).forEach((b) => b.addEventListener("click", () => ptOpenMenu($("#ptAdd"), { add: ptPath(b.dataset.addf), back: true })));
+    $$("[data-edit]", p).forEach((b) => b.addEventListener("click", () => { const path = ptPath(b.dataset.edit); ptOpenEditor(ptCol(ptNodeAt(path).k), { edit: path, back: true }, $("#ptAdd")); }));
+  }
+  function ptOpenBuilder(anchor) {
+    const body = `<div class="pt-panel-h pt-h-row"><span>Advanced filter</span><button type="button" class="pt-mini-link" id="ptBClear">Clear all</button></div>
+      <div class="pt-adv-body"></div>
+      <div class="pt-actions"><button class="pt-apply pt-apply-sm" id="ptBDone">Done</button></div>`;
+    const p = ptPanel(anchor, body, { wide: true, cls: "pt-adv" });
+    ptBuilderRender(p);
+    $("#ptBClear", p).addEventListener("click", () => { PT.root = { join: "and", kids: [] }; ptRerender(); ptBuilderRender(p); });
+    $("#ptBDone", p).addEventListener("click", ptClosePanel);
   }
 
   // Build the toolbar + table into `host` for the given config + rows, and wire all interaction.
   function ptMount(host, cfg, data) {
-    PT = { cfg, data, q: "", filters: [], join: "and", sort: { ...cfg.defaultSort }, shown: 80, io: null, basePath: location.hash.replace(/^#\/?/, "").split("?")[0] };
+    PT = { cfg, data, q: "", root: { join: "and", kids: [] }, sort: { ...cfg.defaultSort }, shown: 80, io: null, basePath: location.hash.replace(/^#\/?/, "").split("?")[0] };
     // restore a shared/bookmarked filter state (keys that don't exist in this table are dropped)
     let urlCols = null;
     if (PT_URLSTATE) {
       if (PT_URLSTATE.q) PT.q = PT_URLSTATE.q;
-      if (Array.isArray(PT_URLSTATE.f)) PT.filters = PT_URLSTATE.f.filter((f) => f && ptCol(f.k));
-      if (PT_URLSTATE.j === "or") PT.join = "or";
+      // new links carry the full tree under `g`; older links carry a flat {f,j} — wrap those into a root group
+      PT.root = ptCleanTree(PT_URLSTATE.g || { join: PT_URLSTATE.j === "or" ? "or" : "and", kids: Array.isArray(PT_URLSTATE.f) ? PT_URLSTATE.f : [] }, true);
       if (PT_URLSTATE.s && ptCol(PT_URLSTATE.s.k)) PT.sort = PT_URLSTATE.s;
       if (Array.isArray(PT_URLSTATE.c)) urlCols = PT_URLSTATE.c;
       PT_URLSTATE = null;
@@ -2873,7 +2967,7 @@
     let qt; q.addEventListener("input", () => { clearTimeout(qt); qt = setTimeout(() => { PT.q = q.value.trim(); PT.shown = 80; ptRerender(); }, 140); });
     $("#ptAdd").addEventListener("click", (e) => { e.stopPropagation(); ptOpenMenu($("#ptAdd")); });
     $("#ptCols").addEventListener("click", (e) => { e.stopPropagation(); ptOpenCols($("#ptCols")); });
-    $("#ptReset").addEventListener("click", () => { PT.q = ""; PT.filters = []; PT.join = "and"; q.value = ""; ptRerender(); });
+    $("#ptReset").addEventListener("click", () => { PT.q = ""; PT.root = { join: "and", kids: [] }; q.value = ""; ptRerender(); });
     $("#ptShare").addEventListener("click", (e) => {
       const btn = e.currentTarget, label = $(".pt-share-t", btn);
       const done = () => { btn.classList.add("ok"); label.textContent = "Copied!"; setTimeout(() => { btn.classList.remove("ok"); label.textContent = "Copy link"; }, 1600); };
