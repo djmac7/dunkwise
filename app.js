@@ -807,11 +807,11 @@
       CHO: [{ until: 2002, id: "CHH", name: "Hornets", color: "#008CA8" }, { until: 2014, id: "CHA", name: "Bobcats", color: "#2A5DA8" }],
       NOP: [{ until: 2013, id: "NOH", name: "Hornets", color: "#00285E" }],
     },
-    data: null, view: null, era: "all", state: null, sort: "ppg", timers: [],
+    data: null, view: null, era: "all", state: null, sort: "ppg", cardOpen: false, timers: [],
   };
 
   function ssClearTimers() { SS.timers.forEach(clearTimeout); SS.timers = []; }
-  function ssCloseSheets() { document.querySelectorAll(".ssg-sheet-back").forEach((el) => el.remove()); }
+  function ssCloseSheets() { document.querySelectorAll(".sheet-backdrop").forEach((el) => el.remove()); }
   function ssT(fn, ms) { const id = setTimeout(fn, ms); SS.timers.push(id); return id; }
   const ssSeasonLabel = (s) => (typeof s === "string" && /^\d{4}s$/.test(s) ? s.slice(2) : s);
   const ssInitials = (n) => { const p = (n || "?").trim().split(/\s+/); return (p.length === 1 ? p[0].slice(0, 2) : p[0][0] + p[p.length - 1][0]).toUpperCase(); };
@@ -829,15 +829,16 @@
     return { id: fr, logoId: (era && era.id) || fr, name, color: (era && era.color) || (f && f.color) || "#2a2a36", label: season != null ? ssSeasonLabel(season) + " " + name : name };
   }
 
-  // player headshot / team logo from the deployed /sixspins/ image set, initials/badge on 404
-  function ssAvatar(p, color, size) {
-    const slug = p && p.player_id;
-    const ok = slug && /^[a-z.'-]{3,}\d{2}$/.test(slug);
-    const img = ok ? `<img src="/sixspins/img/players/${slug}.webp" alt="" loading="lazy" onerror="this.style.display='none'">` : "";
-    return `<span class="ssg-av" style="--c:${color || "#556"};width:${size}px;height:${size}px"><i>${esc(ssInitials(p && p.name))}</i>${img}</span>`;
+  // player headshot (.avatar) + team logo (.ssg-mark) from the deployed /sixspins/ image set;
+  // initials / abbreviation badge show through on a 404 (the headshot fades in over them).
+  function ssAvatar(p, color, size, rounded) {
+    const tx = ssReadable(color), slug = p && p.player_id, ok = slug && /^[a-z.'-]{3,}\d{2}$/.test(slug);
+    const img = ok ? `<img class="avatar__img" src="/sixspins/img/players/${slug}.webp" alt="" loading="lazy" decoding="async" onload="this.classList.add('is-loaded')" onerror="this.remove()">` : "";
+    return `<div class="avatar" style="width:${size}px;height:${size}px;border-radius:${rounded == null ? 9 : rounded}px;background:${color};color:${tx};font-size:${Math.round(size * 0.36)}px"><span class="avatar__initials">${esc(ssInitials(p && p.name))}</span>${img}</div>`;
   }
-  function ssLogo(td, size) {
-    return `<span class="ssg-logo" style="width:${size}px;height:${size}px"><i style="background:${td.color}">${esc(td.id)}</i><img src="/sixspins/img/teams/${td.logoId}.webp" alt="" loading="lazy" onerror="this.style.display='none'"></span>`;
+  function ssMark(td, size, round) {
+    const tx = ssReadable(td.color), r = round == null ? 6 : round;
+    return `<span class="ssg-mark" style="width:${size}px;height:${size}px;border-radius:${r}px"><span class="tlogo-badge" style="background:${td.color};color:${tx};border-radius:${r}px;font-size:${Math.round(size * 0.34)}px">${esc(td.id)}</span><img src="/sixspins/img/teams/${td.logoId}.webp" alt="" loading="lazy" decoding="async" onerror="this.remove()"></span>`;
   }
 
   async function ssLoad() {
@@ -851,7 +852,9 @@
     SS.data = {
       players: data.players,
       playersById: new Map(data.players.map((p) => [p.id, p])),
+      franchises: data.pool.franchises,
       franchisesById: new Map(data.pool.franchises.map((f) => [f.id, f])),
+      seasons: data.pool.seasons,
       cells,
       ceiling: data.ceiling,
       anchorAll: (pct && pct.ovr_anchor) || 588,
@@ -918,7 +921,7 @@
       currentFranchise: c.franchise, currentSeason: c.season,
       rerollTeamUsed: false, rerollYearUsed: false, runningTotal: 0, lastAbility: null, result: null,
     };
-    ssPaint(); ssRunSpin();
+    ssPaint();
   }
   function ssSetEra(id) { if (id === SS.era) return; SS.era = id; ssSetView(); ssNewGame(); }
   const ssCanReroll = (axis) => {
@@ -930,13 +933,13 @@
     const s = SS.state; if (!ssCanReroll("team")) return;
     const alts = (SS.view.bySeason.get(s.currentSeason) || []).filter((f) => f !== s.currentFranchise);
     s.rerollTeamUsed = true; s.currentFranchise = alts[Math.floor(Math.random() * alts.length)];
-    s.phase = "spinning"; s.spinAxis = "team"; ssPaint(); ssRunSpin();
+    s.phase = "spinning"; s.spinAxis = "team"; ssPaint();
   }
   function ssRerollYear() {
     const s = SS.state; if (!ssCanReroll("year")) return;
     const alts = (SS.view.byFranchise.get(s.currentFranchise) || []).filter((y) => y !== s.currentSeason);
     s.rerollYearUsed = true; s.currentSeason = alts[Math.floor(Math.random() * alts.length)];
-    s.phase = "spinning"; s.spinAxis = "year"; ssPaint(); ssRunSpin();
+    s.phase = "spinning"; s.spinAxis = "year"; ssPaint();
   }
   function ssAssign(pid, ability) {
     const s = SS.state; if (!s || s.phase !== "roster") return;
@@ -946,74 +949,122 @@
     const rating = player.ratings[ability];
     s.slots[idx] = { ...s.slots[idx], status: "filled", playerId: pid, rating, franchise: s.currentFranchise, season: s.currentSeason };
     s.runningTotal += rating; s.lastAbility = ability;
-    if (s.slots.filter((x) => x.status === "filled").length >= 6) { s.phase = "reveal"; s.result = { total: s.runningTotal }; ssPaint(); ssRunReveal(); return; }
+    if (s.slots.filter((x) => x.status === "filled").length >= 6) { s.phase = "reveal"; s.result = { total: s.runningTotal }; ssPaint(); return; }
     const c = ssDeal(); s.currentFranchise = c.franchise; s.currentSeason = c.season;
-    s.spinNumber++; s.spinAxis = "both"; s.phase = "spinning"; ssPaint(); ssRunSpin();
+    s.spinNumber++; s.spinAxis = "both"; s.phase = "spinning"; ssPaint();
   }
 
-  // ---- animations ----
-  function ssReelTile(td, season) {
-    return `<div class="ssg-reel-tile" style="--team:${td.color};color:${ssReadable(td.color)}">
-      <span class="ssg-reel-chip">${ssLogo(td, 40)}</span>
-      <span class="ssg-reel-name">${esc(td.label)}</span>
-      <span class="ssg-reel-yr">${esc(ssSeasonLabel(season))}</span></div>`;
+  // ---- spin: two independent reels (team + decade) — the original slot-machine roll ----
+  const SS_ITEM = 92; // px, matches .tyreel__item height
+  function ssTeamItem(f) {
+    return `<div class="tyreel__item team" style="--team:${f.color};color:${ssReadable(f.color)}"><span class="tyreel__logo-chip">${ssMark({ id: f.id, logoId: f.id, color: f.color }, 44, 50)}</span><span class="tyreel__name">${esc(f.name || f.id)}</span></div>`;
+  }
+  const ssYearItem = (id) => `<div class="tyreel__item year">${esc(ssSeasonLabel(id))}</div>`;
+  function ssTeamStrip(target) {
+    const frs = SS.data.franchises; if (frs.length <= 1) return [target];
+    const pick = (prev) => { let p = frs[Math.floor(Math.random() * frs.length)]; while (p === prev) p = frs[Math.floor(Math.random() * frs.length)]; return p; };
+    const out = []; let prev = null;
+    for (let i = 0; i < 26; i++) { prev = pick(prev); out.push(prev); }
+    if (out[out.length - 1].id === target.id) out[out.length - 1] = pick(target);
+    out.push(target); return out;
+  }
+  function ssYearStrip(target) {
+    const seasons = SS.data.seasons, span = seasons.length, ti = Math.max(seasons.indexOf(target), 0), count = Math.max(28, span), out = [];
+    for (let i = 0; i < count; i++) out.push(seasons[(((ti - (count - 1) + i) % span) + span) % span]);
+    return out;
   }
   function ssRunSpin() {
-    const reel = document.getElementById("ssgReel");
-    const s = SS.state; if (!reel) { s.phase = "roster"; ssPaint(); return; }
-    const target = ssTeamDisplay(s.currentFranchise, s.currentSeason);
-    const pool = SS.view.cellList;
-    let n = 0; const flips = 8;
-    const tick = () => {
-      n++;
-      if (n >= flips) { reel.innerHTML = ssReelTile(target, s.currentSeason); reel.firstChild.classList.add("land"); ssT(() => { s.phase = "roster"; ssPaint(); }, 340); return; }
-      const rc = ssParts(pool[Math.floor(Math.random() * pool.length)]);
-      reel.innerHTML = ssReelTile(ssTeamDisplay(rc.franchise, rc.season), rc.season);
-      ssT(tick, 60 + n * 22);
-    };
-    tick();
+    const stage = document.getElementById("ssgReel"); const s = SS.state;
+    if (!stage) { s.phase = "roster"; ssPaint(); return; }
+    const animTeam = s.spinAxis === "both" || s.spinAxis === "team";
+    const animYear = s.spinAxis === "both" || s.spinAxis === "year";
+    const target = SS.data.franchisesById.get(s.currentFranchise) || { id: s.currentFranchise, name: s.currentFranchise, color: "#2a2a36" };
+    const teamStrip = animTeam ? ssTeamStrip(target) : [target];
+    const yearStrip = animYear ? ssYearStrip(s.currentSeason) : [s.currentSeason];
+    stage.innerHTML = `<div class="tyreel">
+      <div class="tyreel-col team" style="height:${SS_ITEM}px"><div class="tyreel-strip team${animTeam ? "" : " static"}" id="ssgTeamStrip">${teamStrip.map(ssTeamItem).join("")}</div></div>
+      <div class="tyreel-col year" style="height:${SS_ITEM}px"><div class="tyreel-strip year${animYear ? "" : " static"}" id="ssgYearStrip">${yearStrip.map(ssYearItem).join("")}</div></div>
+    </div>`;
+    let settled = false;
+    const finish = () => { if (settled) return; settled = true; s.phase = "roster"; ssPaint(); };
+    if (!animTeam && !animYear) { ssT(finish, 60); return; }
+    const teamEl = document.getElementById("ssgTeamStrip"), yearEl = document.getElementById("ssgYearStrip");
+    const primary = animTeam ? teamEl : yearEl;
+    primary.addEventListener("transitionend", finish, { once: true });
+    ssT(finish, 4200); // fallback if transitionend is missed
+    // pin at 0, force a layout, then roll to the landed row — reliably triggers the 3.4s transition
+    if (animTeam) teamEl.style.transform = "translateY(0)";
+    if (animYear) yearEl.style.transform = "translateY(0)";
+    void stage.offsetHeight;
+    if (animTeam) teamEl.style.transform = `translateY(${-(teamStrip.length - 1) * SS_ITEM}px)`;
+    if (animYear) yearEl.style.transform = `translateY(${-(yearStrip.length - 1) * SS_ITEM}px)`;
   }
+
+  // ---- the GOAT card (six slots) — shared by the in-game progress + the reveal ----
+  function ssGoatCard(reveal) {
+    const s = SS.state;
+    const rows = s.slots.map((slot, i) => {
+      const a = SS.ABIL[i], filled = slot.status === "filled";
+      const p = filled ? SS.data.playersById.get(slot.playerId) : null;
+      const td = filled ? ssTeamDisplay(slot.franchise, slot.season) : null;
+      const color = td ? td.color : "#c9ccd2";
+      const just = !reveal && s.lastAbility === slot.ability;
+      const rating = reveal && filled ? `<span class="slot__rating tier-${ssTier(slot.rating)}">${slot.rating}</span>` : "";
+      const fill = filled
+        ? `<div class="slot__fill">${ssAvatar(p, color, 30, 6)}<span class="slot__who"><span class="slot__name">${esc(p ? p.name : "-")}</span><span class="slot__team">${esc(td ? td.label : "")}</span></span>${ssMark(td, 20, 4)}${rating}</div>`
+        : `<span class="slot__await">open</span>`;
+      return `<div class="slot ${filled ? "filled" : "open"}${just ? " just-locked" : ""}" style="${filled ? "--team:" + color : ""}"><span class="slot__leadicon">${SS.ICON[slot.ability]}</span><span class="slot__label">${a.label}</span>${fill}</div>`;
+    }).join("");
+    let total = "";
+    if (reveal) {
+      const ovr = ssOvr(reveal.total);
+      total = `<div class="goat-card__total"><span class="goat-card__total-label">Overall</span><span class="goat-card__total-value tier-${ssTier(ovr)}">${ovr}<span class="goat-card__total-ceil"> OVR</span></span></div>`;
+    }
+    return `<div class="goat-card compact"><div class="goat-card__slots">${rows}</div>${total}</div>`;
+  }
+
+  // ---- reveal: count-up the six ratings, collapse the card, slam the OVR ----
+  const SS_BEAT = 430, SS_PAUSE = 400;
+  const ssMatchColor = (m) => (m >= 90 ? "var(--good)" : m >= 80 ? "var(--slate)" : m >= 70 ? "var(--gold)" : "var(--crit)");
   function ssRunReveal() {
     const host = document.getElementById("ssgReveal"); if (!host) return;
-    const s = SS.state, total = s.result.total, ovr = ssOvr(total);
-    const perfect = s.slots.every((x) => x.rating === 99);
-    const rows = s.slots.map((slot) => {
-      const p = SS.data.playersById.get(slot.playerId), td = ssTeamDisplay(slot.franchise, slot.season), a = SS.ABIL.find((x) => x.k === slot.ability);
-      return `<div class="ssg-rrow" data-ab="${slot.ability}" style="--team:${td.color}">
-        ${ssAvatar(p, td.color, 34)}
-        <div class="ssg-rrow-who"><b>${esc(p ? p.name : "—")}</b><span>${a.label} · ${esc(td.label)}</span></div>
-        <span class="ssg-rrow-rate">–</span></div>`;
-    }).join("");
-    host.innerHTML = `<div class="ssg-reveal">
-      <div class="ssg-reveal-head">YOUR PLAYER</div>
-      <div class="ssg-card">${rows}<div class="ssg-card-total"><span>TOTAL</span><b id="ssgTot">0</b></div></div>
-      <div class="ssg-slam" id="ssgSlam" hidden></div></div>`;
-    const rowEls = host.querySelectorAll(".ssg-rrow"), totEl = host.querySelector("#ssgTot");
+    const s = SS.state;
+    host.innerHTML = `<div class="screen reveal-screen">
+      <div class="reveal-team" id="ssgRevealTeam">
+        <button class="reveal-team__toggle" id="ssgTeamToggle" hidden><span>View your player</span><span class="reveal-team__chev">▼</span></button>
+        <div class="reveal-team__body"><div>${ssGoatCard({ total: 0 })}</div></div>
+      </div>
+      <div class="pct-slam" id="ssgSlam" hidden></div></div>`;
+    const slotEls = host.querySelectorAll(".slot"), totEl = host.querySelector(".goat-card__total-value");
     let shown = 0;
     for (let i = 0; i < 6; i++) {
       ssT(() => {
-        const slot = s.slots[i], el = rowEls[i], rate = el.querySelector(".ssg-rrow-rate");
-        rate.textContent = slot.rating; rate.classList.add("tc-" + ssTier(slot.rating), "in");
-        shown += slot.rating; totEl.textContent = shown;
-      }, (i + 1) * 430);
+        shown += s.slots[i].rating;
+        if (slotEls[i]) slotEls[i].classList.add("shown");
+        if (totEl) { const o = ssOvr(shown); totEl.className = "goat-card__total-value tier-" + ssTier(o); totEl.innerHTML = o + `<span class="goat-card__total-ceil"> OVR</span>`; }
+      }, (i + 1) * SS_BEAT);
     }
-    ssT(() => ssRevealSlam(host, ovr, total, perfect), 6 * 430 + 420);
+    ssT(() => ssRevealSlam(host), 6 * SS_BEAT + SS_PAUSE);
   }
-  function ssRevealSlam(host, ovr, total, perfect) {
-    const s = SS.state, tier = ssOvrTier(ovr), comp = ssComp(s.slots), tc = ssTier(ovr);
-    const ladder = SS_TIERS.slice().reverse(); // low..goat for the meter
-    const meterIdx = ladder.findIndex((t) => t.label === tier.label);
-    const meter = ladder.map((t, i) => `<span class="ssg-step${i <= meterIdx ? " on" : ""}${i === meterIdx ? " cur" : ""}" style="--c:var(--t-${ssTier(t.min === 0 ? 60 : t.min)});height:${8 + i * 5}px"></span>`).join("");
-    const compHtml = comp ? `<div class="ssg-comp"><div class="ssg-comp-k">Your player plays like</div><div class="ssg-comp-row">${ssAvatar(comp.player, "#556", 40)}<div class="ssg-comp-who"><b>${esc(comp.player.name)}</b><span>${esc(comp.player.team_label || "")}</span></div><div class="ssg-comp-m"><b>${comp.match}%</b><span>match</span></div></div></div>` : "";
-    const slam = host.querySelector("#ssgSlam");
-    slam.className = "ssg-slam tc-" + tc + (perfect ? " perfect" : "");
+  function ssRevealSlam(host) {
+    const s = SS.state, total = s.result.total, ovr = ssOvr(total), tc = ssTier(ovr), tier = ssOvrTier(ovr);
+    const perfect = s.slots.every((x) => x.rating === 99), comp = ssComp(s.slots);
+    const rt = document.getElementById("ssgRevealTeam"); rt.classList.add("collapsed");
+    const tog = document.getElementById("ssgTeamToggle"); tog.hidden = false;
+    tog.addEventListener("click", () => { rt.classList.toggle("collapsed"); const c = rt.classList.contains("collapsed"); tog.children[0].textContent = c ? "View your player" : "Hide your player"; tog.children[1].textContent = c ? "▼" : "▲"; });
+    // tier ladder (worst -> best), lit through the current tier; each step colored by its own tier
+    const steps = SS_TIERS.slice().reverse();
+    const curIdx = steps.findIndex((t) => t.label === tier.label);
+    const meter = steps.map((t, i) => `<div class="tiermeter__step tc-${ssTier(t.min === 0 ? 60 : t.min)}${i <= curIdx ? " on" : ""}${i === curIdx ? " cur" : ""}" style="--c:var(--tier-color);height:${10 + i * 4}px"></div>`).join("");
+    const away = ovr >= 99 ? "no ceiling left to break 🐐" : (99 - ovr) + " pts away from GOAT";
+    const compHtml = comp ? `<div class="comp"><div class="comp__kicker">Your player plays like</div><div class="comp__row">${ssAvatar(comp.player, "#c9ccd2", 46, 10)}<div class="comp__who"><span class="comp__name">${esc(comp.player.name)}</span><span class="comp__team">${esc(comp.player.team_label || "")}</span></div><div class="comp__match" style="--match:${ssMatchColor(comp.match)}"><span class="comp__pct">${comp.match}%</span><span class="comp__pct-label">skill match</span></div></div></div>` : "";
+    const slam = document.getElementById("ssgSlam");
+    slam.className = "pct-slam grade-slam tc-" + tc + (perfect ? " perfect" : "");
     slam.hidden = false;
-    slam.innerHTML = `
-      ${ovr >= 99 ? `<div class="ssg-emblem">THE GOAT 🐐</div>` : ""}
-      <div class="ssg-ovr"><span class="ssg-ovr-n">${ovr}</span><span class="ssg-ovr-l">OVR</span></div>
-      <div class="ssg-tierlabel">${tier.label}</div>
-      <div class="ssg-actions"><button class="ssg-btn ssg-btn-primary" id="ssgAgain">Play again</button><button class="ssg-btn ssg-btn-secondary" id="ssgShare">Share result</button></div>
-      <div class="ssg-meter"><div class="ssg-meter-bars">${meter}</div></div>
+    slam.innerHTML = `${ovr >= 99 ? `<div class="pct-slam__emblem">THE GOAT 🐐</div>` : ""}
+      <div class="pct-slam__ovr"><span class="pct-slam__num">${ovr}</span><span class="pct-slam__ovrlabel">OVR</span></div>
+      <div class="pct-slam__actions"><button class="btn-primary" id="ssgAgain">Play again <kbd class="kbd">R</kbd></button><button class="btn-secondary" id="ssgShare">Share result</button></div>
+      <div class="tiermeter"><div class="tiermeter__bars">${meter}</div><div class="tiermeter__caption"><span class="tiermeter__cur tc-${tc}">${tier.label}</span><span class="tiermeter__next">${away}</span></div></div>
       ${compHtml}`;
     slam.querySelector("#ssgAgain").addEventListener("click", ssNewGame);
     slam.querySelector("#ssgShare").addEventListener("click", (e) => ssShare(e.currentTarget, ovr, total));
@@ -1028,7 +1079,7 @@
   }
   // lightweight confetti (no dependency): a burst of falling colored bits over the reveal
   function ssConfetti(gold) {
-    const host = document.getElementById("ssgRoot"); if (!host) return;
+    const host = document.querySelector(".ssg"); if (!host) return;
     const wrap = document.createElement("div"); wrap.className = "ssg-confetti";
     const cols = gold ? ["#ffd700", "#f6c945", "#e3b341", "#c89200", "#fff3bf"] : ["#D97757", "#0d9488", "#7c3aed", "#e3b341", "#4db8ff"];
     for (let i = 0; i < (gold ? 90 : 60); i++) {
@@ -1039,78 +1090,82 @@
     host.appendChild(wrap); ssT(() => wrap.remove(), 3400);
   }
 
-  // ---- render ----
+  // ---- render: the "Your Player" progress toggle + card (original layout) ----
   function ssProgress() {
-    const s = SS.state, filled = s.slots.filter((x) => x.status === "filled").length;
-    const chips = s.slots.map((slot) => {
-      const a = SS.ABIL.find((x) => x.k === slot.ability);
-      if (slot.status === "filled") { const p = SS.data.playersById.get(slot.playerId), td = ssTeamDisplay(slot.franchise, slot.season); return `<div class="ssg-ps filled" title="${esc(a.label)}: ${esc(p ? p.name : "")}">${ssAvatar(p, td.color, 28)}<span>${a.short}</span></div>`; }
-      return `<div class="ssg-ps open" title="${esc(a.label)}"><span class="ssg-ps-ic">${SS.ICON[slot.ability]}</span><span>${a.short}</span></div>`;
+    const s = SS.state, filled = s.slots.filter((x) => x.status === "filled").length, open = SS.cardOpen;
+    const faces = s.slots.map((slot) => {
+      if (slot.status === "filled") { const p = SS.data.playersById.get(slot.playerId), td = ssTeamDisplay(slot.franchise, slot.season); return ssAvatar(p, td.color, 26, 13); }
+      return `<span class="goat-toggle__ph">${SS.ICON[slot.ability]}</span>`;
     }).join("");
-    return `<div class="ssg-prog"><div class="ssg-prog-h"><b>Your player</b><span>${filled}<i>/6</i></span></div><div class="ssg-prog-slots">${chips}</div></div>`;
+    return `<button class="goat-toggle${open ? " open" : ""}" id="ssgGoatToggle"><span class="goat-toggle__label">Your Player</span><span class="goat-toggle__count">${filled}<span class="goat-toggle__count-of">/6</span></span><span class="goat-toggle__faces">${faces}</span><svg class="goat-toggle__chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="goat-card-wrap${open ? " open" : ""}" id="ssgCardWrap">${ssGoatCard(null)}</div>`;
   }
   function ssRosterHtml() {
     const s = SS.state, td = ssTeamDisplay(s.currentFranchise, s.currentSeason), tx = ssReadable(td.color);
-    const players = ssRoster(s.currentSeason, s.currentFranchise);
-    const sort = SS.sort;
+    const players = ssRoster(s.currentSeason, s.currentFranchise), sort = SS.sort;
     const lastName = (n) => ((n || "").trim().split(/\s+/).pop() || "");
     const ordered = players.slice().sort((a, b) => sort === "az" ? lastName(a.name).localeCompare(lastName(b.name)) : (b.stats && b.stats[sort] || 0) - (a.stats && a.stats[sort] || 0));
-    const sorts = [...SS.STATS.map(([k, l]) => [k, l]), ["az", "A–Z"]];
-    const sortBtns = sorts.map(([k, l]) => `<button class="ssg-sortbtn${sort === k ? " active" : ""}" data-sort="${k}">${l}</button>`).join("");
-    const fmt = (v) => (v == null ? "–" : Number(v).toFixed(1));
-    const rows = ordered.map((p) => `<button class="ssg-pcard" data-pid="${esc(p.id)}">
-        ${ssAvatar(p, td.color, 42)}
-        <div class="ssg-pcard-id"><div class="ssg-pcard-name">${esc(p.name)}</div><div class="ssg-pcard-meta">${esc(p.team_label || td.label)}</div></div>
-        <div class="ssg-pcard-stats">${SS.STATS.map(([k, l]) => `<div class="ssg-stat${k === sort ? " active" : ""}"><span class="ssg-stat-v">${fmt(p.stats && p.stats[k])}</span><span class="ssg-stat-k">${l}</span></div>`).join("")}</div>
-      </button>`).join("");
-    return `<div class="ssg-roster">
-      <div class="ssg-banner" style="--team:${td.color};color:${tx}"><span class="ssg-banner-crest">${ssLogo(td, 40)}</span><div class="ssg-banner-t"><div class="ssg-banner-team">${esc(td.label)}</div><div class="ssg-banner-hint">Tap a player to draft one attribute</div></div></div>
-      <div class="ssg-sort"><span class="ssg-sort-l">Sort</span><div class="ssg-sort-opts">${sortBtns}</div></div>
-      <div class="ssg-list">${rows}</div></div>`;
+    const sorts = [...SS.STATS, ["az", "A–Z"]];
+    const sortBtns = sorts.map(([k, l]) => `<button class="sort-btn${sort === k ? " active" : ""}" data-sort="${k}">${l}</button>`).join("");
+    const fmt = (v) => (v == null ? "-" : Number(v).toFixed(1));
+    const rows = ordered.map((p) => `<button class="pcard" data-pid="${esc(p.id)}">${ssAvatar(p, td.color, 44)}<div class="pcard__id"><div class="pcard__name">${esc(p.name)}</div><div class="pcard__meta">${esc(p.team_label || td.label)}</div></div><div class="pcard__stats">${SS.STATS.map(([k, l]) => `<div class="stat${k === sort ? " active" : ""}"><span class="stat__v">${fmt(p.stats && p.stats[k])}</span><span class="stat__k">${l}</span></div>`).join("")}</div></button>`).join("");
+    return `<div class="roster">
+      <div class="roster__banner" style="--team:${td.color};color:${tx}"><div class="roster__crest">${ssMark(td, 40, 10)}</div><div class="roster__title"><div class="roster__team">${esc(td.label)}</div><div class="roster__hint">Tap to draft</div></div></div>
+      <div class="roster__sort"><span class="roster__sort-label">Sort</span><div class="roster__sort-opts">${sortBtns}</div></div>
+      <div class="roster__list">${rows}</div></div>`;
   }
   function ssPaint() {
     const root = document.getElementById("ssgRoot"); const s = SS.state; if (!root || !s) return;
     ssCloseSheets(); // never leave a draft sheet stranded across a phase change
-    if (s.phase === "reveal") { root.innerHTML = `<div id="ssgReveal"></div>`; return; }
-    const eras = SS.ERAS.map((e) => `<button class="ssg-era${SS.era === e.id ? " active" : ""}" data-era="${e.id}">${e.label}</button>`).join("");
-    let body;
-    if (s.phase === "spinning") body = `<div class="ssg-stage"><div class="ssg-stage-label">${s.spinAxis === "team" ? "Rerolling team…" : s.spinAxis === "year" ? "Rerolling decade…" : "Spinning…"}</div><div class="ssg-reel" id="ssgReel"></div></div>`;
-    else body = ssRosterHtml();
-    root.innerHTML = `<div class="ssg-bar"><div class="ssg-eras">${eras}</div><button class="ssg-new">New game</button></div>
-      <div class="ssg-head"><div class="ssg-spinc"><b>Spin ${s.spinNumber}</b><span>of 6</span></div>
-        <div class="ssg-rerolls">
-          <button class="ssg-rr" data-rr="team"${ssCanReroll("team") ? "" : " disabled"}>${SS.ICON.reroll}Team<i>${s.rerollTeamUsed ? 0 : 1}</i></button>
-          <button class="ssg-rr" data-rr="year"${ssCanReroll("year") ? "" : " disabled"}>${SS.ICON.reroll}Decade<i>${s.rerollYearUsed ? 0 : 1}</i></button>
-        </div></div>
-      ${ssProgress()}
-      <div class="ssg-body">${body}</div>`;
+    if (s.phase === "reveal") { root.innerHTML = `<div id="ssgReveal"></div>`; ssRunReveal(); return; }
+    const eras = SS.ERAS.map((e) => `<button class="ss-era${SS.era === e.id ? " active" : ""}" data-era="${e.id}">${e.label}</button>`).join("");
+    const body = s.phase === "spinning"
+      ? `<div class="spin-stage"><div class="spin-stage__title">${s.spinAxis === "team" ? "Rerolling team…" : s.spinAxis === "year" ? "Rerolling decade…" : "Spinning…"}</div><div id="ssgReel"></div></div>`
+      : ssRosterHtml();
+    root.innerHTML = `<div class="ss-bar"><div class="ss-eras">${eras}</div><button class="ss-new">New game</button></div>
+      <div class="screen game-screen">
+        <div class="game-top">
+          <div class="game-header">
+            <div class="spin-counter"><span class="spin-counter__now">Spin ${s.spinNumber}</span><span class="spin-counter__of">of 6</span></div>
+            <div class="reroll-group">
+              <span class="reroll-mini-wrap"><button class="reroll-mini" data-rr="team"${ssCanReroll("team") ? "" : " disabled"}>${SS.ICON.reroll}<span class="reroll-mini__label">Team</span><span class="reroll-mini__n">${s.rerollTeamUsed ? 0 : 1}</span></button></span>
+              <span class="reroll-mini-wrap"><button class="reroll-mini" data-rr="year"${ssCanReroll("year") ? "" : " disabled"}>${SS.ICON.reroll}<span class="reroll-mini__label">Decade</span><span class="reroll-mini__n">${s.rerollYearUsed ? 0 : 1}</span></button></span>
+            </div>
+          </div>
+          ${ssProgress()}
+        </div>
+        <div class="game-bottom">${body}</div>
+      </div>`;
     root.querySelectorAll("[data-era]").forEach((b) => b.addEventListener("click", () => ssSetEra(b.dataset.era)));
-    root.querySelector(".ssg-new").addEventListener("click", ssNewGame);
+    root.querySelector(".ss-new").addEventListener("click", ssNewGame);
+    const tog = root.querySelector("#ssgGoatToggle");
+    if (tog) tog.addEventListener("click", () => { SS.cardOpen = !SS.cardOpen; tog.classList.toggle("open", SS.cardOpen); const w = root.querySelector("#ssgCardWrap"); if (w) w.classList.toggle("open", SS.cardOpen); });
     root.querySelectorAll("[data-rr]").forEach((b) => b.addEventListener("click", () => (b.dataset.rr === "team" ? ssRerollTeam() : ssRerollYear())));
+    if (s.phase === "spinning") ssRunSpin();
     if (s.phase === "roster") {
       root.querySelectorAll("[data-sort]").forEach((b) => b.addEventListener("click", () => { SS.sort = b.dataset.sort; ssPaint(); }));
       root.querySelectorAll("[data-pid]").forEach((b) => b.addEventListener("click", () => ssOpenSheet(b.dataset.pid)));
     }
   }
-  // assign sheet: pick which open attribute to steal from the tapped player
+  // assign sheet: pick which open attribute to steal from the tapped player (original .sheet markup)
   function ssOpenSheet(pid) {
     const s = SS.state, p = SS.data.playersById.get(pid); if (!p) return;
     ssCloseSheets(); // only one sheet at a time
     const td = ssTeamDisplay(s.currentFranchise, s.currentSeason);
     const open = s.slots.filter((x) => x.status === "open").map((x) => x.ability);
-    const fmt = (v) => (v == null ? "–" : Number(v).toFixed(1));
-    const back = document.createElement("div"); back.className = "ssg-sheet-back";
-    back.innerHTML = `<div class="ssg-sheet" role="dialog" aria-label="Draft ${esc(p.name)}">
-      <div class="ssg-sheet-head">${ssAvatar(p, td.color, 46)}<div class="ssg-sheet-id"><div class="ssg-sheet-name">${esc(p.name)}</div><div class="ssg-sheet-sub">${esc(p.team_label || td.label)}</div></div></div>
-      <div class="ssg-sheet-stats">${SS.STATS.map(([k, l]) => `<div class="ssg-stat"><span class="ssg-stat-v">${fmt(p.stats && p.stats[k])}</span><span class="ssg-stat-k">${l}</span></div>`).join("")}</div>
-      <div class="ssg-sheet-prompt">Draft into which attribute?</div>
-      <div class="ssg-sheet-opts">${open.map((ab) => { const a = SS.ABIL.find((x) => x.k === ab); return `<button class="ssg-opt" data-ab="${ab}">${SS.ICON[ab]}<span>${a.label}</span></button>`; }).join("")}</div>
-      <button class="ssg-sheet-cancel">Pick a different player</button></div>`;
+    const fmt = (v) => (v == null ? "-" : Number(v).toFixed(1));
+    const back = document.createElement("div"); back.className = "sheet-backdrop";
+    back.innerHTML = `<div class="sheet" role="dialog" aria-label="Draft ${esc(p.name)}">
+      <div class="sheet__head">${ssAvatar(p, td.color, 46)}<div class="sheet__head-id"><div class="sheet__name">${esc(p.name)}</div><div class="sheet__sub">${esc(p.team_label || td.label)}</div></div></div>
+      <div class="sheet__statline">${SS.STATS.map(([k, l]) => `<div class="stat"><span class="stat__v">${fmt(p.stats && p.stats[k])}</span><span class="stat__k">${l}</span></div>`).join("")}</div>
+      <div class="sheet__prompt">Draft into which attribute?</div>
+      <div class="sheet__options">${open.map((ab) => { const a = SS.ABIL.find((x) => x.k === ab); return `<button class="opt" data-ab="${ab}"><span class="opt__icon">${SS.ICON[ab]}</span><span class="opt__label">${a.label}</span></button>`; }).join("")}</div>
+      <button class="sheet__cancel">Select a different player</button></div>`;
     const close = () => back.remove();
     back.addEventListener("click", (e) => { if (e.target === back) close(); });
-    back.querySelector(".ssg-sheet-cancel").addEventListener("click", close);
+    back.querySelector(".sheet__cancel").addEventListener("click", close);
     back.querySelectorAll("[data-ab]").forEach((b) => b.addEventListener("click", () => { close(); ssAssign(pid, b.dataset.ab); }));
-    document.body.appendChild(back);
+    (document.querySelector(".ssg") || document.body).appendChild(back);
   }
 
   async function renderSixSpins() {
@@ -2242,7 +2297,8 @@
       return s.replace(/\((?:via|by swap)[^)]*\)/gi, '<span class="dp-via">$&</span>')
               .replace(/\[[^\]]*\]/g, '<span class="dp-via">$&</span>');
     };
-    const cell = (c) => {
+    // One round's assets as a clean marked list (no table cell) + any asterisked caveats.
+    const round = (c) => {
       const blocks = (c.note || "").split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
       const picks = blocks.filter((b) => !b.startsWith("*"));       // the assets
       const notes = blocks.filter((b) => b.startsWith("*"));        // asterisked caveats
@@ -2257,17 +2313,20 @@
           }).join("")
         : `<li class="dp-p empty">—</li>`;
       const fn = notes.length ? `<div class="dp-fn">${notes.map((n) => esc(n.replace(/\s*\n+\s*/g, " ").replace(/^\*\s*/, ""))).join("<br>")}</div>` : "";
-      return `<td class="dp-c"><ul class="dp-picks">${items}</ul>${fn}</td>`;
+      return `<ul class="dp-picks">${items}</ul>${fn}`;
     };
-    const rows = team.rows.map((r) => `<tr><td class="l dp-yr">${r.y}</td>${cell(r.r1)}${cell(r.r2)}</tr>`).join("");
+    // Each year is its own airy block: a big year marker, then the two rounds side by side
+    // (stacked on mobile) — no rigid table, so long protection clauses have room to breathe.
+    const years = team.rows.map((r) => `<div class="dp-year">
+        <div class="dp-year-h">${r.y}</div>
+        <div class="dp-round"><div class="dp-round-lbl">First round</div>${round(r.r1)}</div>
+        <div class="dp-round"><div class="dp-round-lbl">Second round</div>${round(r.r2)}</div></div>`).join("");
     const asOf = (() => { try { const [y, mo, d] = dp.asOf.split("-"); return `${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+mo - 1]} ${+d}, ${y}`; } catch { return dp.asOf; } })();
-    return `<div class="section-title" style="margin-top:26px"><div><span class="eyebrow">Owned, incoming, swaps &amp; protections · ${yr0}–${yr1}</span><h2>Future draft picks</h2></div>
+    return `<div class="section-title" id="sec-picks" style="margin-top:26px"><div><span class="eyebrow">Owned, incoming, swaps &amp; protections · ${yr0}–${yr1}</span><h2>Future draft picks</h2></div>
         <span class="eyebrow">${team.firsts} first${team.firsts === 1 ? "" : "s"} · ${team.seconds} second${team.seconds === 1 ? "" : "s"}</span></div>
-      <div class="card">
+      <div class="card dp-card">
         <div class="dp-legend"><span class="dp-p own">Owned</span><span class="dp-p cond">Conditional</span><span class="dp-p out">Traded away</span></div>
-        <div class="tbl-wrap"><table class="ref dp-tbl" style="min-width:560px">
-        <thead><tr><th class="l">Year</th><th class="l">First round</th><th class="l">Second round</th></tr></thead>
-        <tbody>${rows}</tbody></table></div>
+        <div class="dp-years">${years}</div>
         <p class="muted dp-src">Source: <a href="${esc(dp.url)}" target="_blank" rel="noopener">${esc(dp.source)}</a> · as of ${asOf}.</p></div>`;
   }
 
@@ -2355,15 +2414,17 @@
             <a class="btn-mini" href="#/team/${ab}/${latestSeason}">${seasonLabel(latestSeason)} season →</a></div>
         </div>
       </div>
+      <nav class="jumpnav" id="jumpNav">${[["History", "sec-history"], (dp && dp.teams && dp.teams[ab] && dp.teams[ab].rows && dp.teams[ab].rows.length ? ["Draft picks", "sec-picks"] : null), ["News", "teamNews"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
       ${eras.length > 1 ? `<div class="card pad fh-names"><div class="card-h"><h3>Franchise names</h3><span class="hint">${eras.length} eras</span></div><ul>${eraLine}</ul></div>` : ""}
       <div class="tilerow">${tiles.map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}</div>
-      <div class="section-title" style="margin-top:24px"><div><span class="eyebrow">Every season · click a row to open it</span><h2>Franchise history</h2></div>${bestW >= 0 ? `<span class="eyebrow">Best: ${bestW} wins</span>` : ""}</div>
+      <div class="section-title" id="sec-history" style="margin-top:24px"><div><span class="eyebrow">Every season · click a row to open it</span><h2>Franchise history</h2></div>${bestW >= 0 ? `<span class="eyebrow">Best: ${bestW} wins</span>` : ""}</div>
       <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
         <thead><tr><th class="l">Season</th><th>W</th><th>L</th><th>PCT</th><th>ORtg</th><th>DRtg</th>${hasPay ? "<th>Payroll</th>" : ""}<th class="l">Result</th></tr></thead>
         <tbody>${body}</tbody></table></div></div>
       ${draftPicksCard(ab, dp)}
       <div id="teamNews" style="margin-top:24px"></div>
     </div>`;
+    wireJumpNav();
     teamNews(ab).then((html) => { const el = $("#teamNews"); if (el && html) el.innerHTML = html; });
   }
 
