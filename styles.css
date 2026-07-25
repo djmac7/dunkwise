@@ -1648,7 +1648,7 @@ body.pt-sheet-open{overflow:hidden}
 .mobile-menu .mm-group[aria-expanded="true"]{color:var(--ink)}
 .mobile-menu .mm-sub[hidden]{display:none}
 .mobile-menu .mm-sub{background:var(--bg-sunk)}
-.mobile-menu .mm-sub a{padding-left:40px;font-size:14.5px;font-weight:500;color:var(--ink-3)}
+.mobile-menu .mm-sub a{display:block;padding-left:40px;font-size:14.5px;font-weight:500;color:var(--ink-3)}
 .mobile-menu .mm-sub a.on{color:var(--accent-deep)}
 
 /* Ranked lists (salary highest-paid, team payroll) on phones: drop the small
