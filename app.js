@@ -117,6 +117,17 @@
     ? `<img class="pub-logo" src="https://www.google.com/s2/favicons?domain=${d}&sz=64" alt="" loading="lazy" onerror="this.style.display='none'">` : ""; };
   const playerTags = (players) => (players && players.length)
     ? `<span class="ptags">${players.map((p) => `<a class="ptag" href="#/player/${p[0]}">${headshot(p[0], p[1], "", "xs")}${esc(p[1])}</a>`).join("")}</span>` : "";
+  // Backup cover when a headline has no publisher image: the tagged players' cutouts on a
+  // brand-tinted court gradient (up to 3, overlapped and bottom-aligned like a matchup graphic),
+  // falling back to the source's favicon watermark when no player headshot resolves. `kind` is
+  // the container class — "ncard-img" for the grid, "art-img" for the article hero.
+  function newsCover(it, kind) {
+    const faces = (it.players || []).map((p) => nbaOf(p[0])).filter(Boolean).slice(0, 3);
+    const inner = faces.length
+      ? faces.map((n) => `<img class="nc-face" src="${META.headshotBase}${n}.png" alt="" loading="lazy" onerror="this.remove()">`).join("")
+      : `<span class="nc-mark">${pubLogo(it.source)}</span>`;
+    return `<span class="${kind} gen g${faces.length}"><span class="nc-court"></span>${inner}</span>`;
+  }
   // compact list (home rail) — links in-site to the article reader
   function newsList(items, n) {
     return items.slice(0, n).map((it, i) => `<a class="news-item" href="#/article/${i}">
@@ -126,8 +137,8 @@
   // rich card (news page grid)
   function newsCard(it, i) {
     return `<article class="ncard">
-      <a class="ncard-main ${it.img ? "" : "noimg"}" href="#/article/${i}">
-        ${it.img ? `<span class="ncard-img" style="background-image:url('${esc(it.img)}')"></span>` : ""}
+      <a class="ncard-main" href="#/article/${i}">
+        ${it.img ? `<span class="ncard-img" style="background-image:url('${esc(it.img)}')"></span>` : newsCover(it, "ncard-img")}
         <span class="ncard-body">
           <span class="ncard-src">${pubLogo(it.source)}<span>${esc(it.source)}</span><span class="dot">·</span>${timeAgo(it.ts)}</span>
           <span class="ncard-title">${esc(it.title)}</span>
@@ -149,7 +160,7 @@
         <h1>${esc(it.title)}</h1>
         ${playerTags(it.players)}
       </div>
-      ${it.img ? `<div class="art-img"><img src="${esc(it.img)}" alt="" loading="lazy" onerror="this.parentNode.style.display='none'"></div>` : ""}
+      ${it.img ? `<div class="art-img"><img src="${esc(it.img)}" alt="" loading="lazy" onerror="this.parentNode.style.display='none'"></div>` : newsCover(it, "art-img")}
       ${it.summary ? `<p class="art-sum">${esc(it.summary)}</p>` : ""}
       <a class="btn art-read" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">Read the full story at ${esc(it.source)} →</a>
       <p class="news-foot art-attr">Dunkwise aggregates NBA headlines. Summary and image are provided by the publisher's feed for syndication; full articles, photos and rights remain with <b>${esc(it.source)}</b> — the link above opens the original.</p>
@@ -197,12 +208,20 @@
   window.__imgok = function (img) { img.classList.add("ldd"); };
   window.__imgfail = function (img) { img.remove(); };
 
-  function teamLogo(ab, size = "md", season) {
+  // Former identities that share a still-active franchise's modern abbr, so teamLogo's
+  // current-franchise short-circuit would otherwise paint them with today's mark. The
+  // Bobcats ran under CHA (2004–14) just like the current Hornets; BBR serves the period
+  // logo season-stamped. Keyed `${eraAbbr}|${eraName}` → explicit logo URL.
+  const ERA_LOGO = {
+    "CHA|Charlotte Bobcats": "https://cdn.ssref.net/req/1/tlogo/bbr/CHA-2014.png",
+  };
+  function teamLogo(ab, size = "md", season, override) {
     const m = tMeta(ab), color = tColor(ab), mono = `<span class="ava-mono" style="background:${color};color:${textOn(color)}">${esc(ab)}</span>`;
     // current franchises use their ESPN logo; defunct/former franchises (NOH, SEA, …)
     // use their period logo from basketball-reference, season-specific when we know it.
-    let url = (m && m.logo) || (META.histLogos && META.histLogos[ab]) || null;
-    if (url && season && !(m && m.logo)) url = url.replace(/-\d+\.png$/, `-${season}.png`);
+    // An explicit override wins over both (former identities that reuse a live abbr).
+    let url = override || (m && m.logo) || (META.histLogos && META.histLogos[ab]) || null;
+    if (url && season && !override && !(m && m.logo)) url = url.replace(/-\d+\.png$/, `-${season}.png`);
     if (url) return `<span class="ava logo ${size}"><img src="${url}" alt="" loading="lazy" onload="__imgok(this)" onerror="__imgfail(this)"><span class="ava-mono" style="background:${color};color:${textOn(color)}">${esc(ab)}</span></span>`;
     return `<span class="ava logo ${size}">${mono}</span>`;
   }
@@ -1959,7 +1978,7 @@
     // Each era gets the logo the club actually wore then — BBR keeps season-stamped
     // marks for defunct names (PHW-1962, SFW-1971), so pass the era's final season.
     const eraLine = eras.map((e, i) => `<li class="fh-era${i === eras.length - 1 ? " now" : ""}">
-        <span class="fh-mark">${teamLogo(e.ab, "md", e.hi)}</span>
+        <span class="fh-mark">${teamLogo(e.ab, "md", e.hi, ERA_LOGO[`${e.ab}|${e.nm}`])}</span>
         <span class="fh-txt"><span class="fh-nm">${esc(e.nm)}</span><span class="fh-yr">${eraSpan(e).replace(/(\d{4}-\d{2}|present)/g, "<span class=nb>$1</span>")}</span>
           <span class="fh-len">${e.hi - e.lo + 1} season${e.hi - e.lo ? "s" : ""}</span></span>
       </li>`).join("");
@@ -2563,6 +2582,38 @@
       if (table.querySelectorAll("tbody tr").length < 10) return;   // only tables tall enough to scroll their header away
       const wrap = table.closest(".tbl-wrap"); if (!wrap) return;
       const st = makeSticky(table, wrap); if (st) STICKIES.push(st);
+    });
+  }
+  // Long reference tables (franchise history, salaries, leaders, draft, all-time …) collapse to
+  // a preview with a Show-more toggle so a 60-row table doesn't dominate the page. Generic over
+  // any .tbl-wrap > table.ref; skips the player filter table (its own load-more) and .no-collapse.
+  // No teardown needed — route() rebuilds #app each nav, so the button + listener are disposable.
+  const COLLAPSE_LIMIT = 14;
+  function collapseLongTables() {
+    const chev = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+    $$("#app .tbl-wrap > table.ref:not(.pt-table)").forEach((table) => {
+      if (table.closest(".no-collapse")) return;
+      const body = table.tBodies[0]; if (!body) return;
+      const rows = [...body.rows];
+      if (rows.length <= COLLAPSE_LIMIT + 5) return;   // leave a barely-over table whole
+      const wrap = table.closest(".tbl-wrap"); if (!wrap) return;
+      const bar = document.createElement("div");
+      bar.className = "show-more";
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "btn show-more-btn";   // reuse the shared .btn component
+      bar.appendChild(btn);
+      wrap.insertAdjacentElement("afterend", bar);
+      const set = (collapsed) => {
+        rows.forEach((r, i) => r.classList.toggle("tr-collapsed", collapsed && i >= COLLAPSE_LIMIT));
+        btn.setAttribute("aria-expanded", String(!collapsed));
+        btn.innerHTML = (collapsed ? `Show ${rows.length - COLLAPSE_LIMIT} more` : "Show less") + chev;
+      };
+      btn.addEventListener("click", () => {
+        const collapsing = btn.getAttribute("aria-expanded") === "true";
+        set(collapsing);
+        if (collapsing) wrap.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+      set(true);
     });
   }
   function ptRenderBody(rows) {
@@ -3342,6 +3393,7 @@
     const pageEl = app.querySelector(".page"); if (pageEl && !pageEl.querySelector(".reveal")) pageEl.classList.add("pg-enter");
     revealInit();
     stickyTablesSetup(seg);
+    collapseLongTables();
     navProg.done();
   }
 
