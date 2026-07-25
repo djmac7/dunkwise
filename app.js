@@ -1989,6 +1989,25 @@
         <td class="l">${result}</td></tr>`;
     });
 
+    // Roster section (above franchise history): a season dropdown toggles the roster;
+    // defaults to the current roster. Reconstructed past-season rosters come from
+    // rostersBySeason; the current season uses the live `roster`.
+    const rbsAll = t.rostersBySeason || {};
+    const rosterSeason = t.lastSeason || (seasons[0] && seasons[0].season);
+    const rosterFor = (s) => rbsAll[s] || (s === rosterSeason ? (t.roster || []) : []);
+    const rosterSeasons = seasons.filter((s) => rosterFor(s.season).length);   // newest-first
+    const hasRoster = rosterSeasons.length > 0;
+    const rosterDefault = hasRoster ? (rosterFor(rosterSeason).length ? rosterSeason : rosterSeasons[0].season) : null;
+    const rosterTable = (s) => {
+      const roster = rosterFor(s);
+      if (!roster.length) return `<p class="muted" style="font-size:14px">No roster on record for ${seasonLabel(s)}.</p>`;
+      return `<div class="tbl-wrap"><table class="ref">
+        <thead><tr><th class="num">#</th><th class="l">Player</th><th>PTS</th><th>REB</th><th>AST</th><th>GP</th><th class="l">Pos</th></tr></thead>
+        <tbody>${roster.map((r) => `<tr><td class="num muted">${r[7] != null && r[7] !== "" ? esc(r[7]) : ""}</td><td class="l"><span class="who">${headshot(r[0], r[1], ab, "xs")}<a href="#/player/${r[0]}">${esc(r[1])}</a></span></td>
+          <td class="hi">${one(r[4])}</td><td>${one(r[5])}</td><td>${one(r[6])}</td><td>${r[3]}</td><td class="l muted">${esc((r[2] || "").split("-")[0])}</td></tr>`).join("")}</tbody>
+      </table></div>`;
+    };
+
     app.innerHTML = `<div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/teams">Teams</a><span class="sep">/</span><span>${esc(t.name)}</span></div>
       <div class="thead"><div class="band" style="background:${color}"></div>
@@ -2002,9 +2021,12 @@
             <a class="btn-mini" href="#/team/${ab}/${latestSeason}">${seasonLabel(latestSeason)} season →</a></div>
         </div>
       </div>
-      <nav class="jumpnav" id="jumpNav">${[["History", "sec-history"], (dp && dp.teams && dp.teams[ab] && dp.teams[ab].rows && dp.teams[ab].rows.length ? ["Draft picks", "sec-picks"] : null), ["News", "teamNews"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
+      <nav class="jumpnav" id="jumpNav">${[(hasRoster ? ["Roster", "sec-roster"] : null), ["History", "sec-history"], (dp && dp.teams && dp.teams[ab] && dp.teams[ab].rows && dp.teams[ab].rows.length ? ["Draft picks", "sec-picks"] : null), ["News", "teamNews"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
       ${eras.length > 1 ? `<div class="card pad fh-names"><div class="card-h"><h3>Franchise names</h3><span class="hint">${eras.length} eras</span></div><ul>${eraLine}</ul></div>` : ""}
       <div class="tilerow">${tiles.map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}</div>
+      ${hasRoster ? `<div class="section-title" id="sec-roster" style="margin-top:24px"><div><span class="eyebrow">Who suited up · per game</span><h2>Roster</h2></div>
+        <label class="season-select"><span>Season</span><select class="mini-select" id="hubRosterSel">${rosterSeasons.map((s) => `<option value="${s.season}"${s.season === rosterDefault ? " selected" : ""}>${seasonLabel(s.season)}</option>`).join("")}</select></label></div>
+      <div class="card pad" id="hubRosterCard">${rosterTable(rosterDefault)}</div>` : ""}
       <div class="section-title" id="sec-history" style="margin-top:24px"><div><span class="eyebrow">Every season · click a row to open it</span><h2>Franchise history</h2></div>${bestW >= 0 ? `<span class="eyebrow">Best: ${bestW} wins</span>` : ""}</div>
       <div class="card pad"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
         <thead><tr><th class="l">Season</th><th>W</th><th>L</th><th>PCT</th><th>ORtg</th><th>DRtg</th>${hasPay ? "<th>Payroll</th>" : ""}<th class="l">Result</th></tr></thead>
@@ -2013,6 +2035,8 @@
       <div id="teamNews" style="margin-top:24px"></div>
     </div>`;
     wireJumpNav();
+    const rsel = $("#hubRosterSel");
+    if (rsel) rsel.addEventListener("change", () => { const c = $("#hubRosterCard"); if (c) c.innerHTML = rosterTable(+rsel.value); });
     teamNews(ab).then((html) => { const el = $("#teamNews"); if (el && html) el.innerHTML = html; });
   }
 
