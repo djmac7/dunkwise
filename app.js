@@ -122,12 +122,22 @@
   // brand-tinted court gradient (up to 3, overlapped and bottom-aligned like a matchup graphic),
   // falling back to the source's favicon watermark when no player headshot resolves. `kind` is
   // the container class — "ncard-img" for the grid, "art-img" for the article hero.
+  // A curated, warm-leaning set of muted hues ("H S% L%") so each generated cover gets its
+  // own tint + gradient angle — variety without leaving the editorial range. Deterministic
+  // from the headline, so a given card always looks the same.
+  const GEN_PALETTE = ["18 54% 48%", "150 24% 41%", "214 30% 52%", "38 50% 49%",
+    "330 22% 52%", "96 22% 41%", "4 46% 50%", "265 20% 54%"];
+  function genStyle(seed) {
+    let h = 0; for (let i = 0; i < seed.length; i++) h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+    h = Math.abs(h);
+    return `--gc:hsl(${GEN_PALETTE[h % GEN_PALETTE.length]});--ga:${120 + (h % 5) * 15}deg`;
+  }
   function newsCover(it, kind) {
     const faces = (it.players || []).map((p) => nbaOf(p[0])).filter(Boolean).slice(0, 3);
     const inner = faces.length
       ? faces.map((n) => `<img class="nc-face" src="${META.headshotBase}${n}.png" alt="" loading="lazy" onerror="this.remove()">`).join("")
       : `<span class="nc-mark">${pubLogo(it.source)}</span>`;
-    return `<span class="${kind} gen g${faces.length}"><span class="nc-court"></span>${inner}</span>`;
+    return `<span class="${kind} gen g${faces.length}" style="${genStyle(it.title || it.url || "")}"><span class="nc-court"></span>${inner}</span>`;
   }
   // compact list (home rail) — links in-site to the article reader
   function newsList(items, n) {
@@ -446,7 +456,7 @@
         <div class="card big pad reveal" id="newsCard">
           <div class="card-h"><h3>Around the league</h3><a class="hint" href="#/news" style="color:var(--ink-3)">More news →</a></div>
           ${news && news.items && news.items.length ? `<div class="newsfeed">${newsList(news.items, 9)}</div>
-            <div class="news-foot">Headlines from ESPN, CBS, Yahoo, Sporting News &amp; r/nba · updated ${timeAgo(news.fetched)} ago</div>` :
+            <div class="news-foot">The NBA's front page, curated by r/nba · updated ${timeAgo(news.fetched)} ago</div>` :
             `<p class="muted" style="font-size:14px">News feed unavailable right now.</p>`}
         </div>
         <div class="stack">
@@ -1016,7 +1026,7 @@
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>News</span></div>
       <div class="section-title"><div><span class="eyebrow">${items.length} headlines · updated ${news ? timeAgo(news.fetched) + " ago" : "—"}</span><h2>Around the league</h2></div></div>
       ${items.length ? `<div class="ncard-grid">${items.map((it, i) => newsCard(it, i)).join("")}</div>
-        <p class="news-foot" style="margin-top:16px">Aggregated NBA headlines from ESPN, CBS Sports, Yahoo, Sporting News and r/nba, with player tags detected automatically. Each item opens an in-site summary that links to the full story at its source.</p>` :
+        <p class="news-foot" style="margin-top:16px">The top of NBA discussion, curated by the r/nba community — with player tags detected automatically. Each item opens an in-site summary that links to its thread.</p>` :
         `<p class="muted">No news available right now — check back soon.</p>`}
     </div>`;
   }

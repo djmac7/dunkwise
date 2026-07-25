@@ -10,14 +10,16 @@ from email.utils import parsedate_to_datetime
 import xml.etree.ElementTree as ET
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "data", "news.json")
+# Sole source: r/nba already aggregates the best of every outlet (ESPN, The Athletic,
+# insider tweets) filtered by what the community surfaces. Each item links to its thread.
 FEEDS = [
-    ("ESPN", "https://www.espn.com/espn/rss/nba/news"),
-    ("CBS Sports", "https://www.cbssports.com/rss/headlines/nba/"),
-    ("Yahoo Sports", "https://sports.yahoo.com/nba/rss/"),
-    ("Bleacher Report", "https://bleacherreport.com/articles/feed?tag_id=19"),
-    ("Sporting News", "https://www.sportingnews.com/us/rss/nba"),
     ("r/nba", "https://www.reddit.com/r/nba/.rss"),
 ]
+# Skip r/nba's recurring mod/discussion posts — they aren't news.
+REDDIT_SKIP = re.compile(
+    r"\b(game thread|daily discussion|weekly .*thread|free talk|megathread|"
+    r"self-?promotion|fan art|post[- ]?game thread|highlights? thread|"
+    r"moronic monday|thursday|writing team|awards?[- ]?thread)\b", re.I)
 UA = {"User-Agent": "Mozilla/5.0 (DunkwiseBot; headlines aggregator)"}
 
 def tag(el):  # strip namespace
@@ -99,6 +101,7 @@ for source, url in FEEDS:
             elif tg in ("pubDate", "published", "updated") and not date:
                 date = parse_date(ch.text)
         if not title or not link: continue
+        if source == "r/nba" and REDDIT_SKIP.search(title): continue   # drop recurring threads
         key = re.sub(r"[^a-z0-9]", "", title.lower())[:60]
         if key in seen: continue
         seen.add(key)
@@ -106,7 +109,7 @@ for source, url in FEEDS:
                       "ts": date.isoformat() if date else None,
                       "img": find_image(it), "summary": find_summary(it)})
         got += 1
-        if got >= 12: break
+        if got >= 30: break
     print(f"  {source}: {got}")
 
 items.sort(key=lambda x: (x["ts"] or ""), reverse=True)
