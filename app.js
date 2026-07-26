@@ -2428,7 +2428,8 @@
   // array of child indices addressing a node from the root ([] is the root itself).
   const ptIsGroup = (n) => n && Array.isArray(n.kids);
   const ptFlat = (g) => g.kids.every((n) => !ptIsGroup(n));              // no nested groups
-  const ptCountLeaves = (g) => g.kids.reduce((n, k) => n + (ptIsGroup(k) ? ptCountLeaves(k) : 1), 0);
+  const ptEachLeaf = (g, fn) => g.kids.forEach((n) => (ptIsGroup(n) ? ptEachLeaf(n, fn) : fn(n)));   // visit every condition, depth-first
+  const ptActiveKeys = () => { const s = new Set(); ptEachLeaf(PT.root, (n) => s.add(n.k)); return s; };
   const ptNodeAt = (path) => path.reduce((n, i) => n.kids[i], PT.root);
   const ptParentAt = (path) => ({ group: ptNodeAt(path.slice(0, -1)), idx: path[path.length - 1] });
   const ptRemoveAt = (path) => { const { group, idx } = ptParentAt(path); group.kids.splice(idx, 1); };
@@ -2458,9 +2459,12 @@
   }
   function ptOptions(c) {
     if (c.opts) return c.opts();
+    // PT.data is fixed for the mount's lifetime, so cache the derived option list per column
+    const cache = PT.optCache || (PT.optCache = {});
+    if (cache[c.k]) return cache[c.k];
     const set = new Set();
     for (const r of PT.data) { const v = ptGet(c, r); if (v != null && v !== "") set.add(v); }
-    return [...set].sort((a, b) => ("" + a).localeCompare("" + b, undefined, { numeric: true }));
+    return (cache[c.k] = [...set].sort((a, b) => ("" + a).localeCompare("" + b, undefined, { numeric: true })));
   }
   const OPLABEL = { gte: "≥", lte: "≤", eq: "=", between: "between" };
   function ptFmtVal(c, v) {
@@ -2480,8 +2484,7 @@
   }
   // summary label for a group pill in the toolbar, e.g. "Points/g ≥ 25 or 2 more"
   function ptGroupPillText(g) {
-    const leaves = [];
-    (function walk(x) { x.kids.forEach((n) => (ptIsGroup(n) ? walk(n) : leaves.push(n))); })(g);
+    const leaves = []; ptEachLeaf(g, (n) => leaves.push(n));
     if (!leaves.length) return "Empty group";
     const more = leaves.length - 1;
     return more ? `${ptPillText(leaves[0])} ${g.join === "or" ? "or" : "and"} ${more} more` : ptPillText(leaves[0]);
@@ -2706,9 +2709,8 @@
       const label = grp ? ptGroupPillText(n) : ptPillText(n);
       return `${conn}<button class="pt-pill${grp ? " pt-pill-grp" : ""}" data-i="${i}" title="${grp ? "Edit group" : "Edit filter"}">${grp ? '<svg class="pt-pill-ic" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h4M4 12h9M4 17h6"/><circle cx="18" cy="9" r="2"/><circle cx="18" cy="15" r="2"/></svg>' : ""}${esc(label)}<span class="x" data-rm="${i}" role="button" aria-label="Remove filter"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button>`;
     }).join("");
-    const leaves = ptCountLeaves(PT.root);
     $("#ptReset").hidden = !(kids.length || PT.q);
-    const badge = $("#ptAddBadge"); if (badge) { badge.textContent = leaves || ""; badge.hidden = !leaves; }
+    const badge = $("#ptAddBadge"); if (badge) { badge.textContent = kids.length || ""; badge.hidden = !kids.length; }
     const add = $("#ptAdd"); if (add) add.classList.toggle("on", !!kids.length);
     // header sort arrows
     $$("#ptHead th[data-k]").forEach((th) => { const on = th.dataset.k === PT.sort.k; th.classList.toggle("sorted", on); th.setAttribute("aria-sort", on ? (PT.sort.dir < 0 ? "descending" : "ascending") : "none"); });
@@ -2733,7 +2735,9 @@
   // bottom sheet instead: full width, thumb-reachable, with a pinned Apply bar.
   const ptIsSheet = () => window.matchMedia("(max-width:640px)").matches;
   function ptClosePanel() {
-    const p = $("#ptPanel"); if (p) p.remove();
+    const p = $("#ptPanel");
+    if (p && p.__onClose) p.__onClose();   // panel-specific teardown (the builder tidies its tree here)
+    if (p) p.remove();
     const b = $("#ptPanelBd"); if (b) b.remove();
     document.body.classList.remove("pt-sheet-open");
     document.removeEventListener("click", ptOutside, true); document.removeEventListener("keydown", ptPanelKey, true);
@@ -2743,7 +2747,7 @@
   function ptPanel(anchor, html, opts) {
     opts = opts || {};
     ptClosePanel();
-    const p = document.createElement("div"); p.id = "ptPanel"; p.className = "pt-panel" + (opts.cls ? " " + opts.cls : ""); p.innerHTML = html;
+    const p = document.createElement("div"); p.id = "ptPanel"; p.className = "pt-panel" + (opts.cls ? " " + opts.cls : ""); p.__onClose = opts.onClose; p.innerHTML = html;
     if (ptIsSheet()) {
       p.classList.add("pt-sheet");
       p.insertAdjacentHTML("afterbegin", '<div class="pt-grab" aria-hidden="true"></div>');
@@ -2770,23 +2774,24 @@
     return p;
   }
   const PT_TYPEHINT = { enum: "list", bool: "yes / no", num: "number", pct: "percent", money: "salary", date: "date", text: "text" };
-  // `addTarget` names where a picked field lands: { add:<groupPath>, back?:true }. Default
-  // appends to the root group. When `back` is set (opened from the builder) the builder reopens
-  // after the value is committed, and the "Advanced filter" shortcut is hidden.
-  function ptOpenMenu(anchor, addTarget) {
-    addTarget = addTarget || { add: [] };
-    const inBuilder = !!addTarget.back;
-    const cols = PT.cfg.cols.filter((c) => c.type !== "text" && c.filt !== false);
-    const active = new Set(); (function walk(g) { g.kids.forEach((n) => (ptIsGroup(n) ? walk(n) : active.add(n.k))); })(PT.root);
-    const item = (c) => `<button class="pt-mi" data-k="${c.k}"><span class="pt-mi-l">${esc(c.label)}${active.has(c.k) ? '<span class="pt-mi-on" title="Currently filtered"></span>' : ""}</span><span class="pt-mi-t">${PT_TYPEHINT[c.type] || ""}</span></button>`;
-    const list = (f) => { const m = cols.filter((c) => !f || c.label.toLowerCase().includes(f)); return m.length ? m.map(item).join("") : `<div class="pt-mi-empty">No matching field</div>`; };
-    const adv = inBuilder ? "" : `<button class="pt-mi pt-mi-adv" data-adv type="button"><span class="pt-mi-l"><svg class="pt-mi-ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h4M4 12h9M4 17h6"/><circle cx="18" cy="9" r="2"/><circle cx="18" cy="15" r="2"/></svg>Advanced filter</span><span class="pt-mi-t">groups</span></button><div class="pt-mi-sep" aria-hidden="true"></div>`;
-    const p = ptPanel(anchor, `<div class="pt-panel-h">${inBuilder ? "Add condition" : "Add filter"}</div>${adv}${cols.length > 8 ? `<input class="pt-search" id="ptMenuSearch" placeholder="Find a field…" autocomplete="off" spellcheck="false">` : ""}<div class="pt-menu" id="ptMenuList">${list("")}</div>`);
-    const av = $("[data-adv]", p); if (av) av.addEventListener("click", () => ptOpenBuilder(anchor));
-    const wire = () => $$(".pt-mi[data-k]", p).forEach((b) => b.addEventListener("click", () => ptOpenEditor(ptCol(b.dataset.k), addTarget, anchor)));
+  // field buttons for a "pick a field" list, shared by the toolbar menu and the builder's inline
+  // picker; `attr` is the data attribute each button carries (data-k for the menu, data-bfield inline).
+  function ptFieldItems(attr, filter) {
+    const active = ptActiveKeys();
+    const m = PT.cfg.cols.filter((c) => c.type !== "text" && c.filt !== false && (!filter || c.label.toLowerCase().includes(filter)));
+    return m.length ? m.map((c) => `<button type="button" class="pt-mi" data-${attr}="${c.k}"><span class="pt-mi-l">${esc(c.label)}${active.has(c.k) ? '<span class="pt-mi-on" title="Currently filtered"></span>' : ""}</span><span class="pt-mi-t">${PT_TYPEHINT[c.type] || ""}</span></button>`).join("")
+      : `<div class="pt-mi-empty">No matching field</div>`;
+  }
+  // toolbar "Add filter" menu: an Advanced-filter shortcut plus the field list; a pick appends to root
+  function ptOpenMenu(anchor) {
+    const searchable = PT.cfg.cols.filter((c) => c.type !== "text" && c.filt !== false).length > 8;
+    const adv = `<button class="pt-mi pt-mi-adv" data-adv type="button"><span class="pt-mi-l"><svg class="pt-mi-ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h4M4 12h9M4 17h6"/><circle cx="18" cy="9" r="2"/><circle cx="18" cy="15" r="2"/></svg>Advanced filter</span><span class="pt-mi-t">groups</span></button><div class="pt-mi-sep" aria-hidden="true"></div>`;
+    const p = ptPanel(anchor, `<div class="pt-panel-h">Add filter</div>${adv}${searchable ? `<input class="pt-search" id="ptMenuSearch" placeholder="Find a field…" autocomplete="off" spellcheck="false">` : ""}<div class="pt-menu" id="ptMenuList">${ptFieldItems("k", "")}</div>`);
+    $("[data-adv]", p).addEventListener("click", () => ptOpenBuilder(anchor));
+    const wire = () => $$(".pt-mi[data-k]", p).forEach((b) => b.addEventListener("click", () => ptOpenEditor(ptCol(b.dataset.k), { add: [] }, anchor)));
     wire();
     const s = $("#ptMenuSearch", p);
-    if (s) { s.addEventListener("input", () => { $("#ptMenuList", p).innerHTML = list(s.value.toLowerCase().trim()); wire(); }); if (!ptIsSheet()) s.focus(); }
+    if (s) { s.addEventListener("input", () => { $("#ptMenuList", p).innerHTML = ptFieldItems("k", s.value.toLowerCase().trim()); wire(); }); if (!ptIsSheet()) s.focus(); }
     ptMenuKeys(p, s);   // arrow-key navigation + enter
   }
   // keyboard nav for a menu of .pt-mi buttons; `input` (optional) is the search field
@@ -2804,132 +2809,222 @@
     if (input) return;
     p.addEventListener("keydown", (e) => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); move(e.key === "ArrowDown" ? 1 : -1); } });
   }
-  // `target` = { edit:<path> } to replace an existing node, or { add:<groupPath> } to append a
-  // new one; `back:true` reopens the builder after commit. Editors for enum/date expose "is / is not".
-  function ptOpenEditor(c, target, anchor) {
-    const existing = target.edit ? ptNodeAt(target.edit) : null;
-    // a small "is / is not" segmented control, shared by enum + date editors
+  // Editor body for one column, reusable as a floating popover (toolbar) AND inline in the builder.
+  // Returns { html, bind(root, commit, cancel) }; bind wires `root` and calls commit(filter|null)
+  // on apply / cancel() on cancel. Enum + date expose an "is / is not" toggle.
+  function ptEditorBody(c, existing) {
     const negSeg = (neg) => `<div class="pt-opsel">${[["is", 0], ["is not", 1]].map(([lab, v]) => `<button type="button" class="pt-opseg${(neg ? 1 : 0) === v ? " on" : ""}" data-neg="${v}">${lab}</button>`).join("")}</div>`;
-    const wireNeg = (p, state) => $$(".pt-opseg", p).forEach((b) => b.addEventListener("click", () => { state.neg = +b.dataset.neg === 1; $$(".pt-opseg", p).forEach((x) => x.classList.toggle("on", x === b)); }));
-    let body;
+    const wireNeg = (root, st) => $$(".pt-opseg", root).forEach((b) => b.addEventListener("click", () => { st.neg = +b.dataset.neg === 1; $$(".pt-opseg", root).forEach((x) => x.classList.toggle("on", x === b)); }));
+    const head = (right) => `<div class="pt-ed-h pt-h-row"><span>${esc(c.label)}</span>${right || ""}</div>`;
+    const actions = `<div class="pt-actions pt-ed-act"><button type="button" class="pt-mini-link" id="ptEdCancel">Cancel</button><button type="button" class="pt-apply pt-apply-sm" id="ptApply">Apply</button></div>`;
+    const wireCancel = (root, cancel) => { const b = $("#ptEdCancel", root); if (b) b.addEventListener("click", () => cancel()); };
     if (c.type === "enum") {
       const st = { neg: existing ? !!existing.neg : false };
       const opts = ptOptions(c), sel = new Set(existing ? existing.vals.map(String) : []);
       const olabel = (o) => (c.fmtVal ? c.fmtVal(o) : "" + o);
       const optHtml = (filter) => opts.filter((o) => !filter || ("" + olabel(o)).toLowerCase().includes(filter)).map((o) =>
         `<label class="pt-opt"><input type="checkbox" value="${esc("" + o)}" ${sel.has("" + o) ? "checked" : ""}><span class="pt-opt-l">${c.enumIcon === "team" ? teamLogo(o, "xs") + " " + esc(olabel(o)) : esc("" + olabel(o))}</span><svg class="pt-opt-ck" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></label>`).join("");
-      body = `<div class="pt-panel-h pt-h-row"><span>${esc(c.label)}</span><span class="pt-sel-count" id="ptSelN"></span></div>
-        ${negSeg(st.neg)}
+      const html = `${head('<span class="pt-sel-count" id="ptSelN"></span>')}${negSeg(st.neg)}
         ${opts.length > 8 ? `<input class="pt-search" id="ptOptSearch" placeholder="Search ${opts.length} options…" autocomplete="off" spellcheck="false">` : ""}
         <div class="pt-quick"><button class="pt-mini-link" id="ptOptAll" type="button">Select all</button><button class="pt-mini-link" id="ptOptNone" type="button">Clear</button></div>
-        <div class="pt-opts" id="ptOpts">${optHtml("")}</div><div class="pt-actions"><button class="pt-apply" id="ptApply">Apply</button></div>`;
-      const p = ptPanel(anchor, body);
-      wireNeg(p, st);
-      const upd = () => { const n = $$("#ptOpts input:checked", p).length; const el = $("#ptSelN", p); el.textContent = n ? `${n} selected` : ""; };
-      const os = $("#ptOptSearch", p); if (os) os.addEventListener("input", () => { $("#ptOpts", p).innerHTML = optHtml(os.value.toLowerCase().trim()); upd(); });
-      p.addEventListener("change", upd); upd();
-      $("#ptOptAll", p).addEventListener("click", () => { $$("#ptOpts input", p).forEach((i) => (i.checked = true)); upd(); });
-      $("#ptOptNone", p).addEventListener("click", () => { $$("#ptOpts input", p).forEach((i) => (i.checked = false)); upd(); });
-      $("#ptApply", p).addEventListener("click", () => {
-        const vals = $$("#ptOpts input:checked", p).map((i) => i.value);
-        ptCommit(target, vals.length ? { k: c.k, op: "in", vals, neg: st.neg } : null); });
-      if (os && !ptIsSheet()) os.focus();   // autofocus would raise the keyboard over the sheet
-    } else if (c.type === "bool") {
-      body = `<div class="pt-panel-h">${esc(c.label)}</div><div class="pt-menu">
-        <button class="pt-mi" data-v="1">${esc(c.boolLabels[0])}</button><button class="pt-mi" data-v="0">${esc(c.boolLabels[1])}</button></div>`;
-      const p = ptPanel(anchor, body);
-      $$(".pt-mi", p).forEach((b) => b.addEventListener("click", () => ptCommit(target, { k: c.k, op: "is", vals: [+b.dataset.v] })));
-    } else if (c.type === "date") {
+        <div class="pt-opts" id="ptOpts">${optHtml("")}</div>${actions}`;
+      const bind = (root, commit, cancel) => {
+        wireNeg(root, st);
+        const upd = () => { const n = $$("#ptOpts input:checked", root).length; const el = $("#ptSelN", root); if (el) el.textContent = n ? `${n} selected` : ""; };
+        const os = $("#ptOptSearch", root); if (os) os.addEventListener("input", () => { $("#ptOpts", root).innerHTML = optHtml(os.value.toLowerCase().trim()); upd(); });
+        root.addEventListener("change", upd); upd();
+        $("#ptOptAll", root).addEventListener("click", () => { $$("#ptOpts input", root).forEach((i) => (i.checked = true)); upd(); });
+        $("#ptOptNone", root).addEventListener("click", () => { $$("#ptOpts input", root).forEach((i) => (i.checked = false)); upd(); });
+        $("#ptApply", root).addEventListener("click", () => { const vals = $$("#ptOpts input:checked", root).map((i) => i.value); commit(vals.length ? { k: c.k, op: "in", vals, neg: st.neg } : null); });
+        wireCancel(root, cancel);
+        if (os && !ptIsSheet()) os.focus();
+      };
+      return { html, bind };
+    }
+    if (c.type === "bool") {
+      const cur = existing ? existing.vals[0] : null;
+      const html = `${head()}<div class="pt-menu">
+        <button class="pt-mi" data-v="1"${cur === 1 ? ' aria-current="true"' : ""}>${esc(c.boolLabels[0])}</button>
+        <button class="pt-mi" data-v="0"${cur === 0 ? ' aria-current="true"' : ""}>${esc(c.boolLabels[1])}</button></div>
+        <div class="pt-actions pt-ed-act"><button type="button" class="pt-mini-link" id="ptEdCancel">Cancel</button></div>`;
+      const bind = (root, commit, cancel) => {
+        $$(".pt-mi", root).forEach((b) => b.addEventListener("click", () => commit({ k: c.k, op: "is", vals: [+b.dataset.v] })));
+        wireCancel(root, cancel);
+      };
+      return { html, bind };
+    }
+    if (c.type === "date") {
       const st = { neg: existing ? !!existing.neg : false };
       const v0 = existing ? existing.vals[0] : "", v1 = existing ? existing.vals[1] : "";
-      body = `<div class="pt-panel-h">${esc(c.label)}</div>${negSeg(st.neg)}<div class="pt-num">
+      const html = `${head()}${negSeg(st.neg)}<div class="pt-num">
         <div class="pt-num-in"><span class="pt-and">from</span><input id="ptD0" type="date" value="${v0 && v0 !== "0000-01-01" ? v0 : ""}"></div>
-        <div class="pt-num-in"><span class="pt-and">to</span><input id="ptD1" type="date" value="${v1 && v1 !== "9999-12-31" ? v1 : ""}"></div></div>
-        <div class="pt-actions"><button class="pt-apply" id="ptApply">Apply</button></div>`;
-      const p = ptPanel(anchor, body);
-      wireNeg(p, st);
-      $("#ptApply", p).addEventListener("click", () => {
-        const d0 = $("#ptD0", p).value, d1 = $("#ptD1", p).value;
-        ptCommit(target, (d0 || d1) ? { k: c.k, op: "daterange", vals: [d0 || "0000-01-01", d1 || "9999-12-31"], neg: st.neg } : null);
-      });
-    } else { // numeric
-      const op = existing ? existing.op : "gte", v0 = existing ? existing.vals[0] : "", v1 = existing && existing.vals[1] != null ? existing.vals[1] : "";
-      const disp = (x) => x === "" ? "" : (c.inMul ? +(x / c.inMul).toFixed(2) : x);
-      // show the actual data range so the user knows the bounds they can filter within
-      const dv = PT.data.map((r) => ptGet(c, r)).filter((v) => v != null && !isNaN(v));
-      const fh = (v) => (c.type === "pct" || c.type === "money") ? ptFmtVal(c, v) : (Number.isInteger(v) ? v : (+v).toFixed(1));
-      const rangeHint = dv.length ? `data ranges ${fh(Math.min(...dv))}–${fh(Math.max(...dv))}` : "";
-      const hint = [c.hint, rangeHint].filter(Boolean).join(" · ");
-      body = `<div class="pt-panel-h">${esc(c.label)}</div>
-        <div class="pt-num"><select id="ptOp">${["gte", "lte", "eq", "between"].map((o) => `<option value="${o}" ${o === op ? "selected" : ""}>${o === "gte" ? "at least (≥)" : o === "lte" ? "at most (≤)" : o === "eq" ? "equals (=)" : "between"}</option>`).join("")}</select>
-          <div class="pt-num-in"><input id="ptV0" type="number" step="any" value="${disp(v0)}" placeholder="0" inputmode="decimal"><span class="pt-u">${c.unit || ""}</span></div>
-          <div class="pt-num-in" id="ptV1wrap" ${op === "between" ? "" : "hidden"}><span class="pt-and">and</span><input id="ptV1" type="number" step="any" value="${disp(v1)}" inputmode="decimal"><span class="pt-u">${c.unit || ""}</span></div>
-          ${hint ? `<span class="pt-hint">${esc(hint)}</span>` : ""}</div>
-        <div class="pt-actions"><button class="pt-apply" id="ptApply">Apply</button></div>`;
-      const p = ptPanel(anchor, body);
-      const opSel = $("#ptOp", p); opSel.addEventListener("change", () => { $("#ptV1wrap", p).hidden = opSel.value !== "between"; });
-      const commit = () => {
-        const raw0 = parseFloat($("#ptV0", p).value); if (isNaN(raw0)) return;
-        const mul = c.inMul || 1, o = opSel.value, vals = [raw0 * mul];
-        if (o === "between") { const raw1 = parseFloat($("#ptV1", p).value); if (isNaN(raw1)) return; vals.push(raw1 * mul); }
-        ptCommit(target, { k: c.k, op: o, vals }); };
-      $("#ptApply", p).addEventListener("click", commit);
-      p.addEventListener("keydown", (e) => { if (e.key === "Enter") commit(); });
-      $("#ptV0", p).focus();
+        <div class="pt-num-in"><span class="pt-and">to</span><input id="ptD1" type="date" value="${v1 && v1 !== "9999-12-31" ? v1 : ""}"></div></div>${actions}`;
+      const bind = (root, commit, cancel) => {
+        wireNeg(root, st);
+        $("#ptApply", root).addEventListener("click", () => { const d0 = $("#ptD0", root).value, d1 = $("#ptD1", root).value; commit((d0 || d1) ? { k: c.k, op: "daterange", vals: [d0 || "0000-01-01", d1 || "9999-12-31"], neg: st.neg } : null); });
+        wireCancel(root, cancel);
+      };
+      return { html, bind };
     }
+    // numeric
+    const op0 = existing ? existing.op : "gte", nv0 = existing ? existing.vals[0] : "", nv1 = existing && existing.vals[1] != null ? existing.vals[1] : "";
+    const disp = (x) => x === "" ? "" : (c.inMul ? +(x / c.inMul).toFixed(2) : x);
+    // show the actual data range so the user knows the bounds they can filter within
+    // (min/max only depend on the column + fixed PT.data, so cache them for the mount's lifetime)
+    const rcache = PT.rangeCache || (PT.rangeCache = {});
+    let rng = rcache[c.k];
+    if (rng === undefined) { const dv = PT.data.map((r) => ptGet(c, r)).filter((v) => v != null && !isNaN(v)); rng = rcache[c.k] = dv.length ? [Math.min(...dv), Math.max(...dv)] : null; }
+    const fh = (v) => (c.type === "pct" || c.type === "money") ? ptFmtVal(c, v) : (Number.isInteger(v) ? v : (+v).toFixed(1));
+    const rangeHint = rng ? `data ranges ${fh(rng[0])}–${fh(rng[1])}` : "";
+    const hint = [c.hint, rangeHint].filter(Boolean).join(" · ");
+    const html = `${head()}
+      <div class="pt-num"><select id="ptOp">${["gte", "lte", "eq", "between"].map((o) => `<option value="${o}" ${o === op0 ? "selected" : ""}>${o === "gte" ? "at least (≥)" : o === "lte" ? "at most (≤)" : o === "eq" ? "equals (=)" : "between"}</option>`).join("")}</select>
+        <div class="pt-num-in"><input id="ptV0" type="number" step="any" value="${disp(nv0)}" placeholder="0" inputmode="decimal"><span class="pt-u">${c.unit || ""}</span></div>
+        <div class="pt-num-in" id="ptV1wrap" ${op0 === "between" ? "" : "hidden"}><span class="pt-and">and</span><input id="ptV1" type="number" step="any" value="${disp(nv1)}" inputmode="decimal"><span class="pt-u">${c.unit || ""}</span></div>
+        ${hint ? `<span class="pt-hint">${esc(hint)}</span>` : ""}</div>${actions}`;
+    const bind = (root, commit, cancel) => {
+      const opSel = $("#ptOp", root); opSel.addEventListener("change", () => { $("#ptV1wrap", root).hidden = opSel.value !== "between"; });
+      const doCommit = () => {
+        const raw0 = parseFloat($("#ptV0", root).value); if (isNaN(raw0)) return;
+        const mul = c.inMul || 1, o = opSel.value, vals = [raw0 * mul];
+        if (o === "between") { const raw1 = parseFloat($("#ptV1", root).value); if (isNaN(raw1)) return; vals.push(raw1 * mul); }
+        commit({ k: c.k, op: o, vals }); };
+      $("#ptApply", root).addEventListener("click", doCommit);
+      root.addEventListener("keydown", (e) => { if (e.key === "Enter") doCommit(); });
+      wireCancel(root, cancel);
+      const v0el = $("#ptV0", root); if (v0el && !ptIsSheet()) v0el.focus();
+    };
+    return { html, bind };
   }
-  // Apply an editor result to the tree. target.edit replaces (or, with a null filter, removes) the
-  // node at a path; target.add appends a new condition to a group. `back` reopens the builder after.
-  function ptCommit(target, filter) {
+  // toolbar popover editor (quick pills + quick add). `target` = { edit:<path> } | { add:<groupPath> }.
+  function ptOpenEditor(c, target, anchor) {
+    const ed = ptEditorBody(c, target.edit ? ptNodeAt(target.edit) : null);
+    const p = ptPanel(anchor, ed.html);
+    ed.bind(p, (filter) => ptCommit(target, filter), ptClosePanel);
+  }
+  // Apply an editor result to the tree: target.edit replaces (or, with a null filter, removes) the
+  // node at that path; target.add appends a new condition to a group. Shared by the popover + inline editors.
+  function ptApplyToTree(target, filter) {
     if (target.edit) { if (filter) ptSetAt(target.edit, filter); else ptRemoveAt(target.edit); }
     else if (target.add && filter) ptInsertInto(target.add, filter);
-    PT.shown = 80; ptClosePanel(); ptRerender();
-    if (target.back) ptOpenBuilder($("#ptAdd"));
+    PT.shown = 80;
   }
+  function ptCommit(target, filter) { ptApplyToTree(target, filter); ptClosePanel(); ptRerender(); }
 
   // ---- advanced filter builder (nested groups) ----
-  // Renders the whole tree as nested boxes with per-group and/or toggles, + Filter / + Filter group,
-  // and remove controls — the Linear/Twenty "Advanced filter" panel. Reuses the shared floating panel.
+  // Renders the whole tree as nested boxes with per-group and/or toggles, + Filter / + Filter group.
+  // Everything happens IN the panel: adding or editing a condition swaps a field-picker / value editor
+  // inline (PT.bEdit tracks what's open) — no separate popover, no focus jump back to the toolbar.
+  // PT.bEdit = { add:<groupPath>, stage:"field"|"value", k } (adding) | { edit:<condPath> } (editing).
+
   function ptBuilderGroupHtml(g, path) {
     const isRoot = path.length === 0, ps = path.join("."), joinWord = g.join === "or" ? "or" : "and";
+    const be = PT.bEdit, addingHere = be && be.add === ps;
     const rows = g.kids.map((n, i) => {
       const kp = path.concat(i).join(".");
       const conn = i === 0 ? '<span class="pt-blead">' + (isRoot ? "Where" : "") + "</span>"
         : i === 1 ? `<button type="button" class="pt-join pt-bjoin" data-gjoin="${ps}" title="Match all (and) or any (or)">${joinWord}</button>`
         : `<span class="pt-join pt-join-static">${joinWord}</span>`;
-      const inner = ptIsGroup(n)
-        ? ptBuilderGroupHtml(n, path.concat(i))
-        : `<div class="pt-cond"><button type="button" class="pt-cond-b" data-edit="${kp}">${esc(ptPillText(n))}</button><button type="button" class="pt-cond-x" data-rm="${kp}" aria-label="Remove filter"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`;
+      let inner;
+      if (ptIsGroup(n)) inner = ptBuilderGroupHtml(n, path.concat(i));
+      else if (be && be.edit === kp) inner = `<div class="pt-binline" data-inline="edit:${kp}">${ptEditorBody(ptCol(n.k), n).html}</div>`;
+      else inner = `<div class="pt-condrow"><label class="pt-csel" title="Select to group with others"><input type="checkbox" data-sel="${kp}"><span class="pt-csel-b"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></label><div class="pt-cond"><button type="button" class="pt-cond-b" data-edit="${kp}">${esc(ptPillText(n))}</button><button type="button" class="pt-cond-x" data-rm="${kp}" aria-label="Remove filter"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>`;
       return `<div class="pt-brow">${conn}<div class="pt-bnode">${inner}</div></div>`;
-    }).join("") || '<div class="pt-bempty">No conditions yet</div>';
+    }).join("") || (addingHere ? "" : '<div class="pt-bempty">No conditions yet</div>');
+    // footer: the inline add UI when adding into this group, otherwise the add buttons
+    let foot;
+    if (addingHere && be.stage === "field") {
+      foot = `<div class="pt-binline pt-bpick" data-inline="pick:${ps}">
+        <input class="pt-search" data-bsearch placeholder="Filter by…" autocomplete="off" spellcheck="false">
+        <div class="pt-menu" data-blist>${ptFieldItems("bfield", "")}</div>
+        <div class="pt-actions pt-ed-act"><button type="button" class="pt-mini-link" data-bcancel>Cancel</button></div></div>`;
+    } else if (addingHere) {
+      foot = `<div class="pt-binline" data-inline="add:${ps}">${ptEditorBody(ptCol(be.k), null).html}</div>`;
+    } else {
+      foot = `<button type="button" class="pt-badd" data-addf="${ps}"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Filter</button>
+        <button type="button" class="pt-badd" data-addg="${ps}"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg>Filter group</button>
+        <button type="button" class="pt-badd pt-bgroup" data-groupsel="${ps}" hidden><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8h8v8H8z" opacity=".5"/><rect x="3.5" y="3.5" width="17" height="17" rx="3"/></svg>Group selected</button>
+        ${isRoot ? "" : `<button type="button" class="pt-grp-x" data-rmg="${ps}" title="Remove this group"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`}`;
+    }
     return `<div class="pt-grp${isRoot ? " pt-grp-root" : ""}" data-grp="${ps}">
       <div class="pt-grp-rows">${rows}</div>
-      <div class="pt-grp-foot">
-        <button type="button" class="pt-badd" data-addf="${ps}"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Filter</button>
-        <button type="button" class="pt-badd" data-addg="${ps}"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg>Filter group</button>
-        ${isRoot ? "" : `<button type="button" class="pt-grp-x" data-rmg="${ps}" title="Remove this group"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`}
-      </div></div>`;
+      <div class="${addingHere ? "pt-grp-add" : "pt-grp-foot"}">${foot}</div></div>`;
+  }
+  // wrap the given sibling indices of a group into a fresh nested subgroup (defaulting to the
+  // opposite combinator, the usual intent when grouping — e.g. two ANDs become an OR block)
+  function ptWrapInto(groupPath, idxs) {
+    const g = ptNodeAt(groupPath);
+    idxs = [...idxs].sort((a, b) => a - b);
+    const picked = idxs.map((i) => g.kids[i]);
+    for (let j = idxs.length - 1; j >= 0; j--) g.kids.splice(idxs[j], 1);
+    g.kids.splice(idxs[0], 0, { join: g.join === "and" ? "or" : "and", kids: picked });
   }
   function ptBuilderRender(p) { $(".pt-adv-body", p).innerHTML = ptBuilderGroupHtml(PT.root, []); ptBuilderWire(p); }
   function ptBuilderWire(p) {
-    // in-place edits (toggle/add-group/remove) apply live and re-render the builder without closing it;
-    // add-condition and edit drill into the shared menu/editor, which reopen the builder on commit.
+    // tree changed → repaint the results too; only the open editor changed → repaint just the builder
     const refresh = () => { ptRerender(); ptBuilderRender(p); };
-    $$("[data-gjoin]", p).forEach((b) => b.addEventListener("click", () => { const g = ptNodeAt(ptPath(b.dataset.gjoin)); g.join = g.join === "or" ? "and" : "or"; refresh(); }));
-    $$("[data-rm]", p).forEach((b) => b.addEventListener("click", () => { ptRemoveAt(ptPath(b.dataset.rm)); refresh(); }));
-    $$("[data-rmg]", p).forEach((b) => b.addEventListener("click", () => { ptRemoveAt(ptPath(b.dataset.rmg)); refresh(); }));
-    $$("[data-addg]", p).forEach((b) => b.addEventListener("click", () => { ptInsertInto(ptPath(b.dataset.addg), { join: "and", kids: [] }); refresh(); }));
-    $$("[data-addf]", p).forEach((b) => b.addEventListener("click", () => ptOpenMenu($("#ptAdd"), { add: ptPath(b.dataset.addf), back: true })));
-    $$("[data-edit]", p).forEach((b) => b.addEventListener("click", () => { const path = ptPath(b.dataset.edit); ptOpenEditor(ptCol(ptNodeAt(path).k), { edit: path, back: true }, $("#ptAdd")); }));
+    const refreshBuilder = () => ptBuilderRender(p);
+    const reset = () => { PT.bEdit = null; };
+    // structural ops apply live; they first drop any in-progress inline edit so paths stay valid
+    $$("[data-gjoin]", p).forEach((b) => b.addEventListener("click", () => { reset(); const g = ptNodeAt(ptPath(b.dataset.gjoin)); g.join = g.join === "or" ? "and" : "or"; refresh(); }));
+    $$("[data-rm]", p).forEach((b) => b.addEventListener("click", () => { reset(); ptRemoveAt(ptPath(b.dataset.rm)); refresh(); }));
+    $$("[data-rmg]", p).forEach((b) => b.addEventListener("click", () => { reset(); ptRemoveAt(ptPath(b.dataset.rmg)); refresh(); }));
+    $$("[data-addg]", p).forEach((b) => b.addEventListener("click", () => { reset(); ptInsertInto(ptPath(b.dataset.addg), { join: "and", kids: [] }); refresh(); }));
+    // opening the inline picker / editor doesn't touch the tree, so only the builder repaints
+    $$("[data-addf]", p).forEach((b) => b.addEventListener("click", () => { PT.bEdit = { add: b.dataset.addf, stage: "field" }; refreshBuilder(); }));
+    $$("[data-edit]", p).forEach((b) => b.addEventListener("click", () => { PT.bEdit = { edit: b.dataset.edit }; refreshBuilder(); }));
+    // inline field-picker: search filters the list in place; picking a field advances to the value editor
+    const pick = $(".pt-bpick", p);
+    if (pick && PT.bEdit) {
+      const groupPath = PT.bEdit.add, listEl = $("[data-blist]", pick), search = $("[data-bsearch]", pick);
+      const wireFields = () => $$("[data-bfield]", listEl).forEach((b) => b.addEventListener("click", () => { PT.bEdit = { add: groupPath, stage: "value", k: b.dataset.bfield }; refreshBuilder(); }));
+      wireFields();
+      if (search) { search.addEventListener("input", () => { listEl.innerHTML = ptFieldItems("bfield", search.value.toLowerCase().trim()); wireFields(); }); if (!ptIsSheet()) search.focus(); }
+      ptMenuKeys(pick, search);   // arrow-key nav, same as the toolbar menu
+      $("[data-bcancel]", pick).addEventListener("click", () => { reset(); refreshBuilder(); });
+    }
+    // inline value editor (adding a new condition, or editing an existing one)
+    const inlineEd = $('.pt-binline[data-inline^="add:"], .pt-binline[data-inline^="edit:"]', p);
+    if (inlineEd && PT.bEdit) {
+      const be = PT.bEdit, isEdit = !!be.edit, path = isEdit ? ptPath(be.edit) : ptPath(be.add);
+      const target = isEdit ? { edit: path } : { add: path };
+      const ed = ptEditorBody(ptCol(isEdit ? ptNodeAt(path).k : be.k), isEdit ? ptNodeAt(path) : null);
+      ed.bind(inlineEd, (filter) => { ptApplyToTree(target, filter); reset(); refresh(); }, () => { reset(); refreshBuilder(); });
+    }
+    // selection → group: checking ≥2 conditions within one group reveals that group's "Group selected"
+    const parentOf = (s) => (s.indexOf(".") < 0 ? "" : s.slice(0, s.lastIndexOf(".")));
+    const updSel = () => {
+      const counts = {};
+      $$("input[data-sel]:checked", p).forEach((cb) => { const par = parentOf(cb.dataset.sel); counts[par] = (counts[par] || 0) + 1; });
+      $$("[data-groupsel]", p).forEach((btn) => { btn.hidden = (counts[btn.dataset.groupsel] || 0) < 2; });
+    };
+    p.addEventListener("change", (e) => { if (e.target.matches("input[data-sel]")) updSel(); });
+    $$("[data-groupsel]", p).forEach((btn) => btn.addEventListener("click", () => {
+      const P = btn.dataset.groupsel;
+      const idxs = $$("input[data-sel]:checked", p).filter((cb) => parentOf(cb.dataset.sel) === P).map((cb) => +cb.dataset.sel.split(".").pop());
+      if (idxs.length >= 2) { reset(); ptWrapInto(ptPath(P), idxs); refresh(); }
+    }));
+    updSel();
   }
   function ptOpenBuilder(anchor) {
+    PT.bEdit = null;
     const body = `<div class="pt-panel-h pt-h-row"><span>Advanced filter</span><button type="button" class="pt-mini-link" id="ptBClear">Clear all</button></div>
       <div class="pt-adv-body"></div>
       <div class="pt-actions"><button class="pt-apply pt-apply-sm" id="ptBDone">Done</button></div>`;
-    const p = ptPanel(anchor, body, { wide: true, cls: "pt-adv" });
+    // on dismissal the builder tidies its own tree (drop empty groups, unwrap single-condition ones)
+    const p = ptPanel(anchor, body, { wide: true, cls: "pt-adv", onClose: () => { PT.bEdit = null; ptTidyGroup(PT.root); ptRerender(); } });
     ptBuilderRender(p);
-    $("#ptBClear", p).addEventListener("click", () => { PT.root = { join: "and", kids: [] }; ptRerender(); ptBuilderRender(p); });
+    $("#ptBClear", p).addEventListener("click", () => { PT.root = { join: "and", kids: [] }; PT.bEdit = null; ptRerender(); ptBuilderRender(p); });
     $("#ptBDone", p).addEventListener("click", ptClosePanel);
+  }
+  // prune empty groups + unwrap single-condition groups (run when the builder is dismissed)
+  function ptTidyGroup(g) {
+    const kids = [];
+    for (let n of g.kids) {
+      if (ptIsGroup(n)) { ptTidyGroup(n); if (!n.kids.length) continue; if (n.kids.length === 1) n = n.kids[0]; }
+      kids.push(n);
+    }
+    g.kids = kids;
   }
 
   // Build the toolbar + table into `host` for the given config + rows, and wire all interaction.

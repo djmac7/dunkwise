@@ -1448,6 +1448,31 @@ body.pt-sheet-open{overflow:hidden}
 .pt-grp-x{margin-left:auto;display:grid;place-items:center;width:26px;height:26px;border:0;background:none;border-radius:6px;color:var(--ink-4);cursor:pointer}
 .pt-grp-x:hover{background:var(--panel);color:var(--ink)}
 .pt-sheet.pt-adv .pt-adv-body{flex:1 1 auto;max-height:none;min-height:0}
+/* editor body (shared by the toolbar popover and the builder's inline editors) */
+.pt-ed-h{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);padding:6px 8px 7px}
+.pt-ed-act{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pt-ed-act .pt-apply-sm{flex:0 0 auto;min-width:96px}
+/* the inline field-picker / value editor that opens right inside the builder (no popover) */
+.pt-grp-add{margin-top:4px}
+.pt-binline{border:1px solid var(--line-strong);border-radius:9px;background:var(--panel);box-shadow:0 1px 0 rgba(0,0,0,.02);padding:2px 4px 4px}
+.pt-binline .pt-ed-h{padding:6px 6px 4px}
+.pt-binline .pt-opsel{margin:2px 6px 6px}
+.pt-binline .pt-opts{max-height:min(34vh,220px)}
+.pt-binline .pt-num{padding:4px 6px 6px}
+.pt-binline .pt-actions,.pt-binline .pt-ed-act{padding:6px 6px 2px}
+.pt-bpick .pt-menu{max-height:min(38vh,240px);overflow:auto;margin-top:2px}
+.pt-bpick .pt-search{margin:4px 4px 2px;width:calc(100% - 8px)}
+/* group-from-selection: a subtle checkbox per condition (fades in on row hover / when checked) */
+.pt-condrow{display:flex;align-items:center;gap:8px;min-width:0}
+.pt-csel{display:inline-flex;flex:none;cursor:pointer}
+.pt-csel input{position:absolute;opacity:0;pointer-events:none}
+.pt-csel-b{display:grid;place-items:center;width:16px;height:16px;border:1.5px solid var(--line-strong);border-radius:5px;color:transparent;opacity:.3;transition:.12s}
+.pt-brow:hover .pt-csel-b{opacity:.75}
+.pt-csel input:checked~.pt-csel-b{opacity:1;background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
+.pt-csel input:focus-visible~.pt-csel-b{box-shadow:var(--pt-ring);opacity:1}
+.pt-badd[hidden]{display:none}   /* the base .pt-badd display:inline-flex would otherwise defeat [hidden] */
+.pt-bgroup:not([hidden]){border-style:solid;border-color:var(--accent-soft);color:var(--accent-deep)}
+.pt-bgroup svg{color:var(--accent-deep)}
 /* table header sorting — arrow appears on hover to signal a column is sortable */
 .pt-table th[data-k]{cursor:pointer;user-select:none;white-space:nowrap;transition:color .12s}
 .pt-table th[data-k]:hover{color:var(--ink)}
