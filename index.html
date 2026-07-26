@@ -27,16 +27,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="preconnect" href="https://cdn.nba.com" />
-<link rel="preconnect" href="https://a.espncdn.com" />
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..800&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet" />
 <!-- Shared design tokens (source of truth: ../dunkwise-ds/tokens.css). Must load before styles.css. -->
 <link rel="stylesheet" href="ds/tokens.css?v=143" />
 <!-- apply saved appearance before first paint (no flash of wrong theme) -->
 <script>try{var t=localStorage.getItem('hw-theme');if(t&&t!=='system')document.documentElement.setAttribute('data-theme',t);if(localStorage.getItem('hw-density')==='compact')document.documentElement.setAttribute('data-density','compact');}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=151" />
+<link rel="stylesheet" href="styles.css?v=152" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=145" />
 <!-- start the app bundle downloading during head parse, before the body script tag -->
-<link rel="preload" as="script" href="app.js?v=151" />
+<link rel="preload" as="script" href="app.js?v=152" />
 </head>
 <body>
 <a href="#app" class="skip">Skip to content</a>
@@ -141,7 +140,7 @@
     <div>
       <a href="#/" class="brand"><span class="dot"></span> Dunkwise</a>
       <p>A modern NBA statistical reference — every player and team, all-time leaders and standings, laid out to be read.</p>
-      <p class="disc">Data spans the 1947 (BAA) through 2025-26 seasons, from public historical datasets, rounded for display. Team logos and player photos load from official league CDNs. Not affiliated with the NBA.</p>
+      <p class="disc">Data spans the 1947 (BAA) through 2025-26 seasons, from public historical datasets, rounded for display. Player photos are from the NBA's official CDN. Not affiliated with the NBA, its teams, or the NBPA.</p>
       <p class="disc data-refreshed" id="dataRefreshed" hidden><span class="dr-dot"></span><span id="dataRefreshedText"></span></p>
       <p class="disc foot-legal"><a href="#/terms">Terms of Service</a> · <a href="#/privacy">Privacy Policy</a> · <a href="#/settings" data-settings>Settings</a></p>
     </div>
@@ -150,8 +149,15 @@
         <b>Explore</b>
         <a href="#/players">Players</a>
         <a href="#/teams">Teams</a>
-        <a href="#/leaders">League leaders</a>
         <a href="#/standings">Standings</a>
+        <a href="#/leaders">League leaders</a>
+      </div>
+      <div>
+        <b>More</b>
+        <a href="#/news">News</a>
+        <a href="#/salaries">Salaries</a>
+        <a href="#/awards">Awards</a>
+        <a href="#/draft">Draft</a>
         <a href="#/seasons">All seasons</a>
       </div>
       <div>
@@ -169,6 +175,6 @@
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 12l6-6 6 6"/></svg>
 </button>
 
-<script src="app.js?v=151"></script>
+<script src="app.js?v=152"></script>
 </body>
 </html>

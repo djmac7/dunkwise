@@ -142,11 +142,34 @@ def page(title, desc, canon, body, jsonld=None, og_type="website"):
 <header class="topbar"><div class="wrap">
   <a href="{BASE}/" class="brand"><span class="dot"></span> Dunkwise</a>
   <nav class="mainnav">
-    <a href="{BASE}/#/players">Players</a><a href="{BASE}/#/teams">Teams</a><a href="{BASE}/leaders.html">Leaders</a>
+    <a href="{BASE}/players/index.html">Players</a><a href="{BASE}/teams/index.html">Teams</a><a href="{BASE}/leaders.html">Leaders</a>
     <a href="{BASE}/standings.html">Standings</a><a href="{BASE}/salaries.html">Salaries</a><a href="{BASE}/awards.html">Awards</a>
   </nav>
 </div></header>
 <main id="app">{body}</main>
+<footer><div class="wrap foot">
+  <div>
+    <a href="{BASE}/" class="brand"><span class="dot"></span> Dunkwise</a>
+    <p>A modern NBA reference — every player and team, all-time leaders, standings, awards and salaries from 1947 to today.</p>
+    <p class="disc">Historical data from public datasets, rounded for display. Not affiliated with the NBA, its teams, or the NBPA.</p>
+  </div>
+  <div class="foot-cols">
+    <div>
+      <b>Explore</b>
+      <a href="{BASE}/players/index.html">Players</a>
+      <a href="{BASE}/teams/index.html">Teams</a>
+      <a href="{BASE}/standings.html">Standings</a>
+      <a href="{BASE}/leaders.html">League leaders</a>
+    </div>
+    <div>
+      <b>More</b>
+      <a href="{BASE}/salaries.html">Salaries</a>
+      <a href="{BASE}/awards.html">Awards</a>
+      <a href="{BASE}/draft/index.html">Draft</a>
+      <a href="{BASE}/leaders/all-time.html">All-time leaders</a>
+    </div>
+  </div>
+</div></footer>
 </body>
 </html>
 """
@@ -483,7 +506,7 @@ def render_player(p):
 
     body = f"""
     <div class="wrap page">
-      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/#/players">Players</a><span class="sep">/</span><span>{esc(name)}</span></nav>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/players/index.html">Players</a><span class="sep">/</span><span>{esc(name)}</span></nav>
       <h1>{esc(name)}</h1>
       <p class="pos">{esc(pos)} · {team_link}</p>
       <p class="muted">Seasons {esc(yrs)} · {seasons} on record{' · Ht ' + esc(b['ht']) if b.get('ht') else ''}{' · b. ' + esc(b['born'][:4]) if b.get('born') else ''}</p>
@@ -516,7 +539,7 @@ def render_player(p):
 
     crumb_ld = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": 1, "name": "Home", "item": canonical("/")},
-        {"@type": "ListItem", "position": 2, "name": "Players", "item": canonical("/#/players")},
+        {"@type": "ListItem", "position": 2, "name": "Players", "item": canonical("/players/index.html")},
         {"@type": "ListItem", "position": 3, "name": name, "item": canonical(f"/players/{pid}.html")}]}
     blocks = [ld, crumb_ld]
     if faqs:
@@ -557,7 +580,7 @@ def render_team(ab, t):
 
     body = f"""
     <div class="wrap page">
-      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/#/teams">Teams</a><span class="sep">/</span><span>{esc(t['name'])}</span></nav>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/teams/index.html">Teams</a><span class="sep">/</span><span>{esc(t['name'])}</span></nav>
       <h1>{esc(t['name'])}</h1>
       <p class="muted">{esc(conf + 'ern Conference' if conf else '')} · {rec}</p>
       <p style="margin:14px 0"><a class="btn" href="{BASE}/#/team/{esc(ab)}">View interactive team page →</a></p>
@@ -1017,7 +1040,7 @@ def render_compare(pa, pb):
             f"{nb}: {one(cb.get('pts'))} PPG, {one(cb.get('trb'))} RPG, {one(cb.get('ast'))} APG.")
     body = f"""
     <div class="wrap page">
-      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/#/players">Players</a><span class="sep">/</span><span>Compare</span></nav>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/players/index.html">Players</a><span class="sep">/</span><span>Compare</span></nav>
       <h1>{esc(na)} vs {esc(nb)}</h1>
       <p class="muted">Career statistical comparison. View full profiles: <a href="{BASE}/players/{esc(a)}.html">{esc(na)}</a> · <a href="{BASE}/players/{esc(b)}.html">{esc(nb)}</a>.</p>
       <h2>Career averages, head to head</h2>
