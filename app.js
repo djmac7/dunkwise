@@ -318,6 +318,8 @@
     if ((m = h.match(/^#\/player\/([^/?]+)/))) canHref = abs("players/" + m[1] + ".html");
     else if ((m = h.match(/^#\/team\/([^/?]+)/))) canHref = abs("teams/" + m[1] + ".html");
     else if ((m = h.match(/^#\/game\/([^/?]+)/))) canHref = abs("game/" + m[1] + ".html");
+    else if ((m = h.match(/^#\/season\/([^/?]+)/))) canHref = abs("seasons/" + m[1] + ".html");
+    else if (/^#\/seasons\b/.test(h)) canHref = abs("seasons/index.html");
     let can = document.head.querySelector('link[rel="canonical"]');
     if (!can) { can = document.createElement("link"); can.rel = "canonical"; document.head.appendChild(can); }
     can.href = canHref;

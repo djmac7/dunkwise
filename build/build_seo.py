@@ -142,8 +142,8 @@ def page(title, desc, canon, body, jsonld=None, og_type="website"):
 <header class="topbar"><div class="wrap">
   <a href="{BASE}/" class="brand"><span class="dot"></span> Dunkwise</a>
   <nav class="mainnav">
-    <a href="{BASE}/players/index.html">Players</a><a href="{BASE}/teams/index.html">Teams</a><a href="{BASE}/leaders.html">Leaders</a>
-    <a href="{BASE}/standings.html">Standings</a><a href="{BASE}/salaries.html">Salaries</a><a href="{BASE}/awards.html">Awards</a>
+    <a href="{BASE}/players/index.html">Players</a><a href="{BASE}/teams/index.html">Teams</a><a href="{BASE}/scores/index.html">Scores</a><a href="{BASE}/standings.html">Standings</a>
+    <a href="{BASE}/leaders.html">Leaders</a><a href="{BASE}/seasons/index.html">Seasons</a><a href="{BASE}/salaries.html">Salaries</a><a href="{BASE}/awards.html">Awards</a>
   </nav>
 </div></header>
 <main id="app">{body}</main>
@@ -158,11 +158,13 @@ def page(title, desc, canon, body, jsonld=None, og_type="website"):
       <b>Explore</b>
       <a href="{BASE}/players/index.html">Players</a>
       <a href="{BASE}/teams/index.html">Teams</a>
+      <a href="{BASE}/scores/index.html">Scores</a>
       <a href="{BASE}/standings.html">Standings</a>
       <a href="{BASE}/leaders.html">League leaders</a>
     </div>
     <div>
       <b>More</b>
+      <a href="{BASE}/seasons/index.html">Seasons</a>
       <a href="{BASE}/salaries.html">Salaries</a>
       <a href="{BASE}/awards.html">Awards</a>
       <a href="{BASE}/draft/index.html">Draft</a>
@@ -629,7 +631,7 @@ def render_game(g):
             f"Full box score with quarter scores, points, rebounds, assists and plus-minus for every player.")
     body = f"""
     <div class="wrap page">
-      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/#/games">Games</a><span class="sep">/</span><span>{esc(a['abbr'])} @ {esc(h['abbr'])}</span></nav>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/scores/index.html">Scores</a><span class="sep">/</span><span>{esc(a['abbr'])} @ {esc(h['abbr'])}</span></nav>
       <h1>{esc(at)} vs {esc(ht)}</h1>
       <p class="pos">{esc(dp)}{esc(lbl)} · Final: {esc(at)} {a.get('score','')}, {esc(ht)} {h.get('score','')}</p>
       <p style="margin:14px 0"><a class="btn" href="{BASE}/#/game/{esc(g['id'])}">View interactive box score →</a></p>
@@ -1008,6 +1010,130 @@ def render_draft_index(years):
           "url": canonical("/draft/index.html")}
     return "/draft/index.html", page("NBA Draft History — Results by Year", desc, canonical("/draft/index.html"), body, ld)
 
+# ---------- per-season overview pages ("2016 NBA season", "2015-16 champion, MVP & leaders") ----------
+def _plink(pid, name):  # linked player name (plain text if no id)
+    return f'<a href="{BASE}/players/{esc(pid)}.html">{esc(name)}</a>' if pid else esc(name)
+
+def render_season(year, sd, years, hist, draft_years, score_years):
+    lbl, lg = season_label(year), sd.get("lg", "NBA")
+    prev_y = next((y for y in years if y < year), None)          # years is newest-first
+    next_y = next((y for y in reversed(years) if y > year), None)
+    champ = sd.get("champion") or {}; ch = champ.get("team")
+    mvp = sd.get("mvp") or {}; h = hist.get(year, {})
+    leaders = sd.get("leaders") or {}; standings = sd.get("standings") or []
+    facts = []
+    if ch and is_real_team(ch):
+        fm = f' · Finals MVP {_plink(champ.get("fmvp_id"), champ.get("fmvp"))}' if champ.get("fmvp") else ""
+        facts.append(("Champion", f'{team_cell(ch)} {esc(tname(ch))}{fm}'))
+    if mvp.get("name"): facts.append(("Most Valuable Player", _plink(mvp.get("id"), mvp.get("name"))))
+    if h.get("roy"): facts.append(("Rookie of the Year", _plink(h.get("roy_id"), h.get("roy"))))
+    if h.get("dpoy"): facts.append(("Defensive Player of the Year", _plink(h.get("dpoy_id"), h.get("dpoy"))))
+    pts = leaders.get("pts") or []
+    if pts: facts.append(("Scoring leader", f'{_plink(pts[0][0], pts[0][1])} — {pts[0][3]} PPG'))
+    facts_html = "".join(f'<div class="b"><div class="k">{esc(k)}</div><div class="v">{v}</div></div>' for k, v in facts)
+    def ltbl(key, label, unit):
+        rows = leaders.get(key) or []
+        if not rows: return ""
+        body = "".join(f'<tr><td>{i+1}</td><td class="l">{_plink(r[0], r[1])}</td><td class="l">{team_cell(r[2])}</td><td>{r[3]}</td></tr>'
+                       for i, r in enumerate(rows[:5]))
+        return (f'<div><h3>{esc(label)}</h3><div class="tbl-wrap"><table class="ref"><thead><tr><th>#</th>'
+                f'<th class="l">Player</th><th class="l">Tm</th><th>{esc(unit)}</th></tr></thead><tbody>{body}</tbody></table></div></div>')
+    leaders_html = "".join(ltbl(k, l, u) for k, l, u in [("pts", "Points", "PPG"), ("trb", "Rebounds", "RPG"), ("ast", "Assists", "APG")])
+    st_rows = "".join(f'<tr><td>{i+1}</td><td class="l">{team_cell(s["abbr"])} {esc(s.get("name", ""))}</td><td>{s["w"]}–{s["l"]}</td></tr>'
+                      for i, s in enumerate(standings[:5]))
+    st_html = (f'<h3>Best records</h3><div class="tbl-wrap"><table class="ref"><thead><tr><th>#</th><th class="l">Team</th>'
+               f'<th>W–L</th></tr></thead><tbody>{st_rows}</tbody></table></div>') if standings else ""
+    xl = [f'<a href="{BASE}/standings/{year}.html">Full standings</a>',
+          f'<a href="{BASE}/leaders/{year}.html">All statistical leaders</a>']
+    if year in score_years: xl.append(f'<a href="{BASE}/scores/{year}.html">Scores &amp; box scores</a>')
+    if (year - 1) in draft_years: xl.append(f'<a href="{BASE}/draft/{year - 1}.html">{year - 1} draft class</a>')
+    nav = []
+    if prev_y: nav.append(f'<a href="{BASE}/seasons/{prev_y}.html">← {season_label(prev_y)}</a>')
+    nav.append(f'<a href="{BASE}/seasons/index.html">All seasons</a>')
+    if next_y: nav.append(f'<a href="{BASE}/seasons/{next_y}.html">{season_label(next_y)} →</a>')
+    ch_txt = f"{tname(ch)} won the title" if ch and is_real_team(ch) else "Season summary"
+    mvp_txt = f", {mvp['name']} was MVP" if mvp.get("name") else ""
+    pts_txt = f", {pts[0][1]} led scoring ({pts[0][3]} PPG)" if pts else ""
+    desc = f"The {lbl} {lg} season: {ch_txt}{mvp_txt}{pts_txt}. Champion, award winners, statistical leaders and final standings."
+    body = f"""
+    <div class="wrap page">
+      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/seasons/index.html">Seasons</a><span class="sep">/</span><span>{lbl}</span></nav>
+      <h1>{lbl} {esc(lg)} Season</h1>
+      <div class="bio">{facts_html}</div>
+      <h2>Statistical leaders</h2>
+      <div class="season-leaders">{leaders_html}</div>
+      {st_html}
+      <p class="muted" style="margin-top:20px">{" · ".join(xl)}</p>
+      <nav class="season-nav" aria-label="Other seasons"><p class="muted">{" &nbsp; ".join(nav)}</p></nav>
+    </div>"""
+    ld = {"@context": "https://schema.org", "@type": "SportsSeason", "name": f"{lbl} {lg} season",
+          "url": canonical(f"/seasons/{year}.html"), "sport": "Basketball",
+          "organizer": {"@type": "Organization", "name": lg}}
+    return f"/seasons/{year}.html", page(f"{lbl} NBA Season — Champion, MVP & Leaders", desc, canonical(f"/seasons/{year}.html"), body, ld)
+
+def render_seasons_index(hist):
+    def row(h):
+        y = h["season"]; ch = h.get("champ")
+        champ = f'{team_cell(ch)} {esc(tname(ch))}' if ch and is_real_team(ch) else esc(h.get("champ_name") or "—")
+        cell = lambda name, pid: _plink(pid, name) if name else "—"
+        return (f'<tr><td class="l"><a href="{BASE}/seasons/{y}.html">{season_label(y)}</a></td>'
+                f'<td class="l">{champ}</td><td class="l">{cell(h.get("fmvp"), h.get("fmvp_id"))}</td>'
+                f'<td class="l">{cell(h.get("mvp"), h.get("mvp_id"))}</td><td class="l">{cell(h.get("roy"), h.get("roy_id"))}</td>'
+                f'<td class="l">{cell(h.get("dpoy"), h.get("dpoy_id"))}</td><td class="l">{esc(h.get("pts_leader") or "—")}</td></tr>')
+    rows = "".join(row(h) for h in hist)
+    tbl = (f'<div class="tbl-wrap"><table class="ref"><thead><tr><th class="l">Season</th><th class="l">Champion</th>'
+           f'<th class="l">Finals MVP</th><th class="l">MVP</th><th class="l">Rookie of Year</th>'
+           f'<th class="l">Defensive POY</th><th class="l">Scoring</th></tr></thead><tbody>{rows}</tbody></table></div>')
+    lo, hi = season_label(hist[-1]["season"]), season_label(hist[0]["season"])
+    body = f"""
+    <div class="wrap page">
+      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><span>Seasons</span></nav>
+      <h1>NBA Seasons — Champions, MVPs & Leaders by Year</h1>
+      <p class="muted">Every {hist[0]["lg"] if hist else "NBA"} season from {lo} to {hi} — champion, Finals MVP, MVP, Rookie and Defensive Player of the Year, and the scoring leader.</p>
+      {tbl}
+    </div>"""
+    desc = f"Every NBA/BAA season, {lo}–{hi}: champions, Finals MVPs, MVPs, Rookie & Defensive Players of the Year and scoring leaders — {len(hist)} seasons."
+    ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": "NBA Seasons by Year",
+          "url": canonical("/seasons/index.html")}
+    return "/seasons/index.html", page("NBA Seasons — Champions & Leaders by Year", desc, canonical("/seasons/index.html"), body, ld)
+
+# ---------- per-season scores pages (internal links to the game box-score pages) ----------
+def render_scores(year, games, built):
+    lbl = season_label(year)
+    def row(g):
+        gid = g["id"]
+        date = f'<a href="{BASE}/game/{gid}.html">{esc(g["date"])}</a>' if gid in built else esc(g["date"])
+        return (f'<tr><td class="l">{date}</td><td class="l">{team_cell(g["a"])} @ {team_cell(g["h"])}</td>'
+                f'<td>{g.get("as", "")}–{g.get("hs", "")}</td><td class="l">{esc(g.get("label") or g.get("type") or "")}</td></tr>')
+    rows = "".join(row(g) for g in games)
+    tbl = (f'<div class="tbl-wrap"><table class="ref"><thead><tr><th class="l">Date</th><th class="l">Matchup</th>'
+           f'<th>Score</th><th class="l">Type</th></tr></thead><tbody>{rows}</tbody></table></div>')
+    body = f"""
+    <div class="wrap page">
+      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/scores/index.html">Scores</a><span class="sep">/</span><span>{lbl}</span></nav>
+      <h1>{lbl} NBA Scores &amp; Results</h1>
+      <p class="muted">Every game of the {lbl} NBA season — final scores, with box scores for {len(built)} games. See also the <a href="{BASE}/seasons/{year}.html">{lbl} season overview</a>.</p>
+      {tbl}
+    </div>"""
+    desc = f"Complete {lbl} NBA schedule and results — every game's final score, with linked box scores."
+    ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": f"{lbl} NBA Scores",
+          "url": canonical(f"/scores/{year}.html")}
+    return f"/scores/{year}.html", page(f"{lbl} NBA Scores — Every Game & Result", desc, canonical(f"/scores/{year}.html"), body, ld)
+
+def render_scores_index(years):
+    links = "".join(f'<li><a href="{BASE}/scores/{y}.html">{season_label(y)} NBA Scores</a></li>' for y in years)
+    body = f"""
+    <div class="wrap page">
+      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><span>Scores</span></nav>
+      <h1>NBA Scores &amp; Box Scores by Season</h1>
+      <p class="muted">Final scores and box scores for every game, by season.</p>
+      <ul class="link-cols">{links}</ul>
+    </div>"""
+    desc = "NBA scores and box scores by season — every game's result with full box scores."
+    ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": "NBA Scores by Season",
+          "url": canonical("/scores/index.html")}
+    return "/scores/index.html", page("NBA Scores & Box Scores by Season", desc, canonical("/scores/index.html"), body, ld)
+
 # ---------- head-to-head comparison pages ("LeBron vs Jordan", "Curry vs Durant") ----------
 MARQUEE = ["jamesle01", "jordami01", "bryanko01", "curryst01", "duranke01", "abdulka01", "johnsma02",
            "birdla01", "onealsh01", "duncati01", "garneke01", "nowitdi01", "hardeja01", "antetgi01",
@@ -1297,13 +1423,31 @@ def main():
     (ROOT / "salaries.html").write_text(render_salaries(cur), encoding="utf-8")
     urls.append("/salaries.html")
 
+    def emit(path, html):
+        out = ROOT / path.lstrip("/")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(html, encoding="utf-8")
+        urls.append(path)
+
+    # scope of game HTML (recent box-score era) — also gates season -> /scores cross-links
+    _gs = os.environ.get("GAME_SEASONS", "")
+    if _gs == "all": game_seasons = None
+    elif _gs: game_seasons = set(int(x) for x in _gs.split(","))
+    else: game_seasons = set(range(cur - 3, cur + 1))
+    score_years = game_seasons if game_seasons is not None else {int(f.stem) for f in (DATA / "games").glob("*.json")}
+    draft_year_set = {int(f.stem) for f in (DATA / "draft").glob("*.json")}
+    hist = META.get("history") or []
+    hist_by_year = {h["season"]: h for h in hist}
+
     # per-season standings & leaders (year-qualified long-tail: "NBA standings 2019",
     # "2016 scoring leaders"). Current season lives at /standings.html & /leaders.html.
+    # Plus a per-season overview page (/seasons/<year>.html) tying it all together.
     sfiles = sorted((DATA / "season").glob("*.json"), key=lambda f: -int(f.stem))
     years = [int(f.stem) for f in sfiles]  # newest-first, drives the season-nav strip
     (ROOT / "standings").mkdir(exist_ok=True)
     (ROOT / "leaders").mkdir(exist_ok=True)
     champions = []
+    nseason = 0
     for f in sfiles:
         year = int(f.stem)
         sd = json.load(open(f))
@@ -1313,20 +1457,19 @@ def main():
         lp, lhtml = render_leaders(year, sd, cur, years)
         (ROOT / lp.lstrip("/")).write_text(lhtml, encoding="utf-8")
         urls.append(lp)
+        if year in hist_by_year:   # a completed season with summary data (skips the forward placeholder)
+            emit(*render_season(year, sd, years, hist_by_year, draft_year_set, score_years))
+            nseason += 1
         ch = (sd.get("champion") or {}).get("team")
         if ch and is_real_team(ch):
             champions.append((year, ch))
-    print(f"standings + leaders: {len(sfiles)} seasons each")
+    if hist:
+        emit(*render_seasons_index(hist))
+    print(f"standings + leaders: {len(sfiles)} seasons each · season overviews: {nseason} + index")
 
     (ROOT / "awards.html").write_text(render_awards(champions), encoding="utf-8")
     urls.append("/awards.html")
     print(f"aggregate pages: salaries.html, awards.html ({len(champions)} champions)")
-
-    def emit(path, html):
-        out = ROOT / path.lstrip("/")
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(html, encoding="utf-8")
-        urls.append(path)
 
     # all-time career + single-season leaders
     at = _alltime_data()
@@ -1368,22 +1511,19 @@ def main():
         emit(*render_query(cur_rows, cur))
         print(f"stat finder: {len(cur_rows)} current players")
 
-    # game box-score pages — the biggest long-tail SEO surface. Scoped to recent seasons for size;
-    # override with GAME_SEASONS="2026,2025,..." (or "all"). Default: last 4 seasons.
-    gs_env = os.environ.get("GAME_SEASONS", "")
-    if gs_env == "all":
-        game_seasons = None
-    elif gs_env:
-        game_seasons = set(int(x) for x in gs_env.split(","))
-    else:
-        game_seasons = set(range(cur - 3, cur + 1))
+    # game box-score pages — the biggest long-tail SEO surface. Scoped to recent seasons for size
+    # (game_seasons computed above; override with GAME_SEASONS). Each built season also gets a
+    # /scores/<year>.html page listing its games, so the box-score pages get crawlable internal links.
     (ROOT / "game").mkdir(exist_ok=True)
     ng = 0
-    for idxf in sorted((DATA / "games").glob("*.json")):
+    scores_years = []
+    for idxf in sorted((DATA / "games").glob("*.json"), key=lambda f: -int(f.stem)):
         season = int(idxf.stem)
         if game_seasons is not None and season not in game_seasons:
             continue
-        for row in json.load(open(idxf))["games"]:
+        games = json.load(open(idxf))["games"]
+        built = set()
+        for row in games:
             gf = DATA / "game" / f"{row['id']}.json"
             if not gf.exists():
                 continue
@@ -1392,8 +1532,13 @@ def main():
                 continue   # skip score-only games (no box) — thin for SEO
             (ROOT / "game" / f"{row['id']}.html").write_text(render_game(g), encoding="utf-8")
             urls.append(f"/game/{row['id']}.html")
-            ng += 1
-    print(f"game box scores: {ng}")
+            built.add(row["id"]); ng += 1
+        if built:
+            emit(*render_scores(season, games, built))
+            scores_years.append(season)
+    if scores_years:
+        emit(*render_scores_index(scores_years))
+    print(f"game box scores: {ng} · scores pages: {len(scores_years)} + index")
 
     loc = lambda u: (SITE_URL + u) if SITE_URL else u
     sm = ['<?xml version="1.0" encoding="UTF-8"?>',
