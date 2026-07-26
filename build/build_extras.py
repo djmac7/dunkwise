@@ -5,7 +5,7 @@ UI needs but the core pipeline didn't emit:
 
   accy : accolade YEARS keyed by type -> for hover detail on the accolade chips
          {allstar:[yr], allnba:[[yr,'1st']], alldef:[[yr,tm]], allrookie:[[yr,tm]],
-          mvp:[yr], dpoy:[yr], roy:[yr], smoy:[yr], mip:[yr]}
+          mvp:[yr], dpoy:[yr], roy:[yr], smoy:[yr], mip:[yr], clutchpoy:[yr], fmvp:[yr]}
   shot : shooting tendencies by season (distance-band frequency + FG%), for the
          interactive shot-tendency chart. {season:{ranges,dunk,corner3,avgDist,fg,fga}}
 
@@ -35,10 +35,19 @@ for r in rows("End of Season Teams.csv"):
     if not y: continue
     key = {"All-NBA": "allnba", "All-Defense": "alldef", "All-Rookie": "allrookie"}.get(t)
     if key: accy[r["player_id"]][key].append([y, r.get("number_tm", "")])
-AW = {"nba mvp": "mvp", "nba dpoy": "dpoy", "nba roy": "roy", "nba smoy": "smoy", "nba mip": "mip"}
+AW = {"nba mvp": "mvp", "nba dpoy": "dpoy", "nba roy": "roy", "nba smoy": "smoy",
+      "nba mip": "mip", "nba clutch_poy": "clutchpoy"}
 for r in rows("Player Award Shares.csv"):
     if r.get("winner", "").upper() == "TRUE" and r["award"] in AW and yr(r["season"]):
         accy[r["player_id"]][AW[r["award"]]].append(yr(r["season"]))
+# Finals MVP: curated per-season winners (not part of the Award Shares table).
+CURATED = os.path.join(os.path.dirname(RAW), "curated")
+try:
+    for r in csv.DictReader(open(os.path.join(CURATED, "finals_mvp.csv"), encoding="utf-8")):
+        if yr(r["season"]) and r.get("player_id"):
+            accy[r["player_id"]]["fmvp"].append(yr(r["season"]))
+except FileNotFoundError:
+    pass
 
 # shooting tendencies by season
 RANGES = [("0-3 ft", "x0_3_range"), ("3-10 ft", "x3_10_range"), ("10-16 ft", "x10_16_range"),

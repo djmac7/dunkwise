@@ -3,7 +3,7 @@
    Async data access; official-CDN logos/headshots with fallbacks.
    ============================================================ */
 (function () {
-  const V = "49";
+  const V = "50";
   // Injury report is hidden site-wide until we have reliable, injury-specific data for
   // every player (the live feed is offseason transaction noise). Flip to true to restore.
   const SHOW_INJURIES = false;
@@ -113,7 +113,8 @@
     } catch (e) {}
   }
   const NEWS_DOMAIN = { "ESPN": "espn.com", "CBS Sports": "cbssports.com", "Yahoo Sports": "sports.yahoo.com",
-    "Bleacher Report": "bleacherreport.com", "r/nba": "reddit.com", "Sporting News": "sportingnews.com", "The Athletic": "nytimes.com" };
+    "Bleacher Report": "bleacherreport.com", "Hoops Rumors": "hoopsrumors.com", "r/nba": "reddit.com",
+    "Sporting News": "sportingnews.com", "The Athletic": "nytimes.com" };
   const pubLogo = (source) => { const d = NEWS_DOMAIN[source]; return d
     ? `<img class="pub-logo" src="https://www.google.com/s2/favicons?domain=${d}&sz=64" alt="" loading="lazy" onerror="this.style.display='none'">` : ""; };
   const playerTags = (players) => (players && players.length)
@@ -133,7 +134,10 @@
     return `--gc:hsl(${GEN_PALETTE[h % GEN_PALETTE.length]});--ga:${120 + (h % 5) * 15}deg`;
   }
   function newsCover(it, kind) {
-    const faces = (it.players || []).map((p) => nbaOf(p[0])).filter(Boolean).slice(0, 3);
+    // Only include players with a real headshot — p[2] === false marks a player whose NBA CDN
+    // image is the generic silhouette (flagged at build time), so we drop them from the cover
+    // art rather than showing a grey cutout. (Older items lack p[2]; those are kept as before.)
+    const faces = (it.players || []).filter((p) => p[2] !== false).map((p) => nbaOf(p[0])).filter(Boolean).slice(0, 3);
     const inner = faces.length
       ? faces.map((n) => `<img class="nc-face" src="${META.headshotBase}${n}.png" alt="" loading="lazy" onerror="this.remove()">`).join("")
       : `<span class="nc-mark">${pubLogo(it.source)}</span>`;
@@ -217,14 +221,28 @@
   // actually loads — so there's no empty-circle flash while loading, and a blocked/broken
   // CDN degrades to the monogram instead of a blank.
   window.__imgok = function (img) { img.classList.add("ldd"); };
-  window.__imgfail = function (img) { img.remove(); };
+  // Team logos are vendored same-origin, so failures should be rare — but retry a few times
+  // with growing, jittered delays as a safety net (e.g. a transient miss) before dropping to
+  // the monogram. Headshots aren't retried: they're on the NBA CDN and a missing one is a
+  // genuine 404, so it degrades to the monogram immediately.
+  window.__imgfail = function (img) {
+    var parent = img.parentElement;
+    var n = +img.dataset.retry || 0;
+    if (parent && parent.classList.contains("logo") && n < 3) {
+      var base = img.dataset.base || (img.dataset.base = img.src.split("?")[0]);
+      img.dataset.retry = n + 1;
+      setTimeout(function () { img.src = base + "?r=" + (n + 1); }, 500 * (n + 1) + Math.floor(Math.random() * 400));
+      return;
+    }
+    img.remove();
+  };
 
   // Former identities that share a still-active franchise's modern abbr, so teamLogo's
   // current-franchise short-circuit would otherwise paint them with today's mark. The
   // Bobcats ran under CHA (2004–14) just like the current Hornets; BBR serves the period
   // logo season-stamped. Keyed `${eraAbbr}|${eraName}` → explicit logo URL.
   const ERA_LOGO = {
-    "CHA|Charlotte Bobcats": "https://cdn.ssref.net/req/1/tlogo/bbr/CHA-2014.png",
+    "CHA|Charlotte Bobcats": "assets/logos/hist/CHA-2014.png",
   };
   function teamLogo(ab, size = "md", season, override) {
     const m = tMeta(ab), color = tColor(ab), mono = `<span class="ava-mono" style="background:${color};color:${textOn(color)}">${esc(ab)}</span>`;
@@ -456,7 +474,7 @@
         <div class="card big pad reveal" id="newsCard">
           <div class="card-h"><h3>Around the league</h3><a class="hint" href="#/news" style="color:var(--ink-3)">More news →</a></div>
           ${news && news.items && news.items.length ? `<div class="newsfeed">${newsList(news.items, 9)}</div>
-            <div class="news-foot">The NBA's front page, curated by r/nba · updated ${timeAgo(news.fetched)} ago</div>` :
+            <div class="news-foot">The NBA's front page, aggregated from ESPN, CBS, Yahoo, Hoops Rumors, Sporting News &amp; r/nba · updated ${timeAgo(news.fetched)} ago</div>` :
             `<p class="muted" style="font-size:14px">News feed unavailable right now.</p>`}
         </div>
         <div class="stack">
@@ -1026,7 +1044,7 @@
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>News</span></div>
       <div class="section-title"><div><span class="eyebrow">${items.length} headlines · updated ${news ? timeAgo(news.fetched) + " ago" : "—"}</span><h2>Around the league</h2></div></div>
       ${items.length ? `<div class="ncard-grid">${items.map((it, i) => newsCard(it, i)).join("")}</div>
-        <p class="news-foot" style="margin-top:16px">The top of NBA discussion, curated by the r/nba community — with player tags detected automatically. Each item opens an in-site summary that links to its thread.</p>` :
+        <p class="news-foot" style="margin-top:16px">Headlines aggregated from ESPN, CBS Sports, Yahoo Sports, Hoops Rumors, Sporting News and the r/nba community — with player tags detected automatically. Each item links out to its publisher.</p>` :
         `<p class="muted">No news available right now — check back soon.</p>`}
     </div>`;
   }
@@ -1082,19 +1100,28 @@
   // resolved against the season index so every row matches the main Scores styling.
   async function renderPlayerGames(pid) {
     let p; try { p = await getPlayer(pid); } catch { return notFound("player"); }
-    let pg; try { pg = await getPGames(pid); } catch { pg = null; }
-    pg = (pg || []).slice();
+    app.innerHTML = `<div class="wrap page pt-page"><p class="muted" style="margin-top:40px">Loading ${esc(p.name)}'s games…</p></div>`;
+    // ALL games: pull every season's full box-score log (data/pslog/<pid>/<season>.json is
+    // uncapped) instead of the capped 100-game profile feed. Seasons come from the player's
+    // career log; pre-box-score seasons simply have no pslog file and are skipped.
+    const plSeasons = [...new Set((p.log || []).map((r) => r[0]))].filter(Boolean);
+    const logs = await Promise.all(plSeasons.map((s) => getPSLog(pid, s).catch(() => null)));
+    let pg = [];
+    logs.forEach((rows) => { if (rows && rows.length) pg = pg.concat(rows); });
+    // Fallback for players with no per-season logs at all (e.g. very early eras).
+    if (!pg.length) { try { pg = (await getPGames(pid)) || []; } catch { pg = []; } }
     const seasons = [...new Set(pg.map((r) => seasonOf(r.date)))];
     const idxs = await Promise.all(seasons.map((s) => getGamesIdx(s).catch(() => null)));
     const byId = {};
     idxs.forEach((idx) => { if (idx && idx.games) idx.games.forEach((g) => { byId[String(g.id)] = g; }); });
-    const games = pg.map((r) => byId[String(r.id)]).filter(Boolean)
+    const seen = new Set();
+    const games = pg.map((r) => byId[String(r.id)]).filter((g) => g && !seen.has(g.id) && seen.add(g.id))
       .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
     const span = games.length ? (() => { const a = seasonOf(games[games.length - 1].date), b = seasonOf(games[0].date); return a === b ? seasonLabel(a) : `${seasonLabel(a)} – ${seasonLabel(b)}`; })() : "";
-    setSEO(`${p.name} — Game Log & Scores`, `Every recent game ${p.name} appeared in: final scores, competitiveness and box-score links.`);
-    // Same filter/sort/column table as #/games, just seeded with this player's games
-    // instead of one season's. Kept multi-season because that's the coverage the
-    // player feed always had — #/games itself is scoped to a single season.
+    setSEO(`${p.name} — Game Log & Scores`, `Every game ${p.name} appeared in: final scores, competitiveness and box-score links.`);
+    // Same filter/sort/column table as #/games, just seeded with this player's full
+    // career of games (across every season) instead of one season's. #/games itself
+    // is scoped to a single season.
     app.innerHTML = `<div class="wrap page pt-page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/games">Scores</a><span class="sep">/</span><span>${esc(p.name)}</span></div>
       <div class="section-title"><div><span class="eyebrow">${games.length} game${games.length === 1 ? "" : "s"}${span ? " · " + span : ""}</span><h2>${esc(p.name)} · Games</h2></div>
@@ -1708,7 +1735,8 @@
     if (t.includes("all-nba")) return tl(accy.allnba);
     if (t.includes("all-defense")) return tl(accy.alldef);
     if (t.includes("all-rookie")) return tl(accy.allrookie);
-    if (t.includes("finals mvp")) return "";           // not in this dataset
+    if (t.includes("finals mvp")) return yrs(accy.fmvp);
+    if (t.includes("clutch")) return yrs(accy.clutchpoy);
     if (t.includes("mvp")) return yrs(accy.mvp);
     if (t.includes("rookie of the year")) return yrs(accy.roy);
     if (t.includes("defensive player")) return yrs(accy.dpoy);

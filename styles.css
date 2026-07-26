@@ -160,8 +160,9 @@ body.cmdk-open{overflow:hidden}
   border-radius:10px;cursor:pointer;display:grid;place-items:center;transition:.15s;flex:none}
 .theme-btn:hover{color:var(--ink);border-color:var(--accent);background:var(--accent-wash)}
 .theme-btn svg{width:17px;height:17px}
-.search-btn{display:none}
-@media (max-width:1080px){.mainnav{display:none}.search{display:none}.search-btn{display:grid}.topbar .spring{flex:1}}
+.icon-btn.search-btn{display:none}  /* redundant with the search box on desktop; shown only when the box hides (<=1080) */
+@media (max-width:1080px){.mainnav{display:none}.search{display:none}.icon-btn.search-btn{display:grid}.topbar .spring{flex:1}}
+@media (min-width:1121px){.topbar #settingsBtn{margin-left:-12px}}  /* tighten gap from the search box (wide widths only; base gap is already 12px below this) */
 
 /* ---------------- generic layout ---------------- */
 main{min-height:70vh}

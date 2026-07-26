@@ -10,8 +10,8 @@ emits the static JSON the site loads on demand:
   data/season/<year>.json     per-game leaders, standings, champion, MVP
   data/team/<abbr>.json       franchise season-by-season + latest roster
 
-Deterministic transform of local data; no images are copied — headshots/logos
-are referenced from official CDNs at runtime, with monogram fallbacks.
+Deterministic transform of local data. Team logos are vendored into assets/logos/ (served
+from our own origin); player headshots stay on the NBA CDN. Both fall back to monograms.
 """
 import csv, json, math, os, re, unicodedata
 from collections import defaultdict
@@ -44,6 +44,31 @@ TEAMS = {
 }
 ESPN_LOGO = "https://a.espncdn.com/i/teamlogos/nba/500/{}.png"
 HEADSHOT  = "https://cdn.nba.com/headshots/nba/latest/1040x760/{}.png"
+
+# Team logos are vendored into assets/logos/ and served from our own origin (dunkwise.com on
+# GitHub Pages / Fastly): same-origin means no extra DNS/TLS to espncdn+ssref and no rate-limits,
+# so it's as fast or faster and never breaks. Headshots stay on the NBA CDN (too many/too large).
+import subprocess as _sub
+ASSETS = os.path.join(HERE, "..", "assets", "logos")
+def vendor_logo(url, subdir):
+    """Download a logo into assets/logos/<subdir>/ once; return its site-relative path, or None
+    if the source 404s (so the caller falls through to a monogram). Idempotent — skips existing."""
+    fn = url.split("/")[-1]
+    rel, dst = f"assets/logos/{subdir}/{fn}", os.path.join(ASSETS, subdir, fn)
+    if os.path.exists(dst) and os.path.getsize(dst) > 200:
+        return rel
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    try:
+        r = _sub.run(["curl", "-s", "-A", "Mozilla/5.0", "--max-time", "20", "-o", dst,
+                      "-w", "%{http_code} %{size_download}", url], capture_output=True, text=True, timeout=30)
+        code, _, size = r.stdout.partition(" ")
+        if code == "200" and int(size or 0) > 200:
+            return rel
+    except Exception:
+        pass
+    if os.path.exists(dst) and os.path.getsize(dst) <= 200:
+        os.remove(dst)
+    return None
 
 def strip_accents(s):
     return "".join(c for c in unicodedata.normalize("NFD", str(s)) if unicodedata.category(c) != "Mn")
@@ -490,7 +515,8 @@ print("meta…")
 teams_meta = {}
 for ab, (city, name, conf, color, code) in TEAMS.items():
     teams_meta[ab] = {"city": city, "name": name, "conf": conf, "color": color,
-                      "logo": ESPN_LOGO.format(code), "full": f"{city} {name}"}
+                      "logo": vendor_logo(ESPN_LOGO.format(code), "team") or ESPN_LOGO.format(code),
+                      "full": f"{city} {name}"}
 # names/colors for every historical abbr (for tags), current ones override
 names = {ab: name_for_abbr.get(ab, ab) for ab in all_abbr}
 for ab in TEAMS: names[ab] = teams_meta[ab]["full"]
@@ -501,8 +527,13 @@ last_by_abbr = {}
 for ab in all_abbr:
     ts = tsum[(tsum.abbreviation == ab) & (tsum.team != "League Average")]
     if len(ts): last_by_abbr[ab] = int(ts.season.max())
-hist_logos = {ab: BBREF_LOGO.format(ab, last_by_abbr[ab])
-              for ab in all_abbr if ab not in TEAMS and ab in last_by_abbr}
+# vendor each former-franchise mark; drop the ones basketball-reference doesn't host (very
+# early BAA/NBA teams 404) so they fall through to a monogram instead of a broken image.
+hist_logos = {}
+for ab in all_abbr:
+    if ab in TEAMS or ab not in last_by_abbr: continue
+    lp = vendor_logo(BBREF_LOGO.format(ab, last_by_abbr[ab]), "hist")
+    if lp: hist_logos[ab] = lp
 
 # champion + mvp history (from the season files we just wrote) for fast browsing
 def winner_by_season(award):

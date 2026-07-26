@@ -4,15 +4,21 @@ Fetch NBA headlines from public RSS/Atom feeds -> data/news.json.
 Stores only headline + link + source + timestamp (a headlines aggregator that
 links out to each publisher; no article text is copied). Re-run to refresh.
 """
-import html, json, os, re, sys, urllib.request
+import html, json, os, re, subprocess, sys, urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import xml.etree.ElementTree as ET
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "data", "news.json")
-# Sole source: r/nba already aggregates the best of every outlet (ESPN, The Athletic,
-# insider tweets) filtered by what the community surfaces. Each item links to its thread.
+# Mainstream NBA outlets plus r/nba as a community aggregator. Each item links out to
+# its publisher; we store only headline + link + source + timestamp.
 FEEDS = [
+    ("ESPN", "https://www.espn.com/espn/rss/nba/news"),
+    ("CBS Sports", "https://www.cbssports.com/rss/headlines/nba/"),
+    ("Yahoo Sports", "https://sports.yahoo.com/nba/rss/"),
+    ("Hoops Rumors", "https://www.hoopsrumors.com/feed"),
+    ("Sporting News", "https://www.sportingnews.com/us/rss/nba"),
     ("r/nba", "https://www.reddit.com/r/nba/.rss"),
 ]
 # Skip r/nba's recurring mod/discussion posts — they aren't news.
@@ -109,11 +115,31 @@ for source, url in FEEDS:
                       "ts": date.isoformat() if date else None,
                       "img": find_image(it), "summary": find_summary(it)})
         got += 1
-        if got >= 30: break
+        if got >= 12: break
     print(f"  {source}: {got}")
 
 items.sort(key=lambda x: (x["ts"] or ""), reverse=True)
 items = items[:48]
+
+# The NBA CDN serves this exact-size PNG (a grey silhouette) for any valid personId that has
+# no real headshot — with HTTP 200, so the client can't tell it apart from a photo. A cheap
+# HEAD request reveals it via Content-Length, so we flag photo-less players and the cover-art
+# generator drops them (see newsCover) instead of rendering a grey cutout.
+SILHOUETTE_LEN = 12430
+HEADSHOT = "https://cdn.nba.com/headshots/nba/latest/1040x760/{}.png"
+def probe_photo(person_id):
+    """True if this NBA personId has a real headshot (not the generic silhouette).
+    Uses curl for the HEAD probe: cdn.nba.com (Akamai) hangs on urllib requests."""
+    if not person_id: return False
+    try:
+        out = subprocess.run(["curl", "-sI", "-A", UA["User-Agent"], "--max-time", "12",
+                              HEADSHOT.format(person_id)], capture_output=True, text=True, timeout=15).stdout
+        for line in out.splitlines():
+            if line.lower().startswith("content-length:"):
+                return int(line.split(":", 1)[1].strip()) != SILHOUETTE_LEN
+        return True   # no Content-Length seen -> keep the face
+    except Exception:
+        return True   # inconclusive probe -> keep the face rather than hide a real photo
 
 # ---- tag players mentioned in each headline/summary (link to our player pages) ----
 try:
@@ -123,6 +149,7 @@ try:
     by_name = {}
     for nm, pid, _to in people:
         by_name[nm.lower()] = (pid, nm)          # later (more recent) overwrites -> current player wins
+    nba_by_pid = {e[0]: e[6] for e in search if len(e) > 6 and e[6]}   # bbref id -> NBA personId
     names = sorted(by_name.keys(), key=len, reverse=True)  # match longer names first
     for it in items:
         text = (it["title"] + " " + (it["summary"] or "")).lower()
@@ -133,6 +160,16 @@ try:
                 tags.append([pid, disp]); used.append(nm)
                 if len(tags) >= 4: break
         it["players"] = tags
+    # Probe each tagged player's headshot once, in parallel, then flag it (3rd element) so
+    # newsCover can skip silhouettes. Kept out of the tag loop to avoid serial HEAD latency.
+    person_of = {p[0]: nba_by_pid.get(p[0]) for it in items for p in it["players"]}
+    uniq = list({v for v in person_of.values() if v})
+    with ThreadPoolExecutor(max_workers=16) as ex:
+        photo = dict(zip(uniq, ex.map(probe_photo, uniq)))
+    for it in items:
+        for p in it["players"]:
+            person = person_of.get(p[0])
+            p.append(bool(person) and photo.get(person, True))
 except Exception as e:
     print(f"  ! player tagging skipped: {e}", file=sys.stderr)
     for it in items: it["players"] = []
