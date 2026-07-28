@@ -599,7 +599,6 @@
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Betting</span></div>
       <div class="section-title"><div><span class="eyebrow">${offseason ? "Offseason · " + seasonLabel(META.current) + " season complete" : "Matchups & trends · " + (slateDate ? fmtDate(slateDate, true) : "latest")}</span><h2>${offseason ? "Matchups & trends" : "Today's slate"}</h2></div></div>
       <div class="rg-note">Trends are informational only and not betting advice. 21+. Gambling problem? Call <b>1-800-GAMBLER</b>.</div>
-      <div class="ad-inline"><span class="lbl">Sponsored</span><div class="slot">Sportsbook placement · 728×90</div></div>
       <div class="bhgrid">${slate.length ? slate.map(gameCard).join("") : `<p class="muted">${offseason ? `The ${seasonLabel(META.current)} season is complete — no games on the slate. Season leaders and trends are below.` : "No games on the current slate — the season is between dates."}</p>`}</div>
       ${props.length ? `<div class="section-title small" style="margin-top:26px"><div><h2>Player props to watch</h2></div><span class="hint">season leaders · tap for trends</span></div>
         <div class="ptiles">${props.map((r) => { const ij = byPlayer[r[0]]; return `<a class="ptile" href="#/player/${r[0]}"><span class="ptile-mark">${esc(initials(r[1]))}</span><span class="ptile-body"><span class="ptile-tag">${esc(r[2])} · ${one(r[3])} PPG${ij ? ` <span class="inj-tag ${ij.status === "Out" ? "out" : "dtd"}">${ij.status === "Out" ? "OUT" : "GTD"}</span>` : ""}</span><b>${esc(r[1])}</b><span class="ptile-d">Points, rebounds & assists trends</span></span><span class="ptile-go">→</span></a>`; }).join("")}</div>` : ""}
@@ -1183,7 +1182,6 @@
       ${leadersStrip}
       <div class="card pad" style="margin-bottom:20px"><div class="tbl-wrap"><table class="ref" style="min-width:0"><thead><tr><th class="l grow">Team</th>${cols.map((c) => `<th>${c}</th>`).join("")}<th>T</th></tr></thead><tbody>${lineRow("away")}${lineRow("home")}</tbody></table></div>
         ${g.arena ? `<p class="news-foot" style="margin-top:12px;border:0;padding:0">${esc(g.arena)}${g.arenaCity ? " · " + esc(g.arenaCity) : ""}${g.attendance ? " · " + g.attendance.toLocaleString() + " att." : ""}${g.officials ? " · Officials: " + esc(g.officials) : ""}</p>` : ""}</div>
-      <div class="ad-inline"><span class="lbl">Advertisement</span><div class="slot">Ad · 728×90</div></div>
       <div class="col2grid">${boxTable("away")}${boxTable("home")}</div>
       <div id="relGames"></div>
     </div>`;
@@ -1586,7 +1584,6 @@
         </div>
       </div>
       <div id="shotProfile"></div>
-      <div class="ad-inline"><span class="lbl">Advertisement</span><div class="slot">Ad · 728×90</div></div>
       ${salRows && salRows.length ? `<div class="section-title" id="sec-salary" style="margin-top:26px"><h2>Contracts &amp; salary</h2><a class="link" href="#/salaries">Salary hub →</a></div>
         <div class="col2grid">
           <div class="card pad" style="min-width:0">

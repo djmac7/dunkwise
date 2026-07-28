@@ -137,8 +137,6 @@ def page(title, desc, canon, body, jsonld=None, og_type="website"):
 {ld}
 </head>
 <body>
-<aside class="ad-rail ad-rail-l" aria-hidden="true"><div class="slot">Ad</div></aside>
-<aside class="ad-rail ad-rail-r" aria-hidden="true"><div class="slot">Ad</div></aside>
 <header class="topbar"><div class="wrap">
   <a href="{BASE}/" class="brand"><span class="dot"></span> Dunkwise</a>
   <nav class="mainnav">

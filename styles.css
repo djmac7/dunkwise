@@ -53,9 +53,7 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:500;letter-spacing:-.015em;text
 
 /* ---------------- top bar ---------------- */
 .topbar{position:sticky;top:0;z-index:60;background:color-mix(in srgb,var(--bg) 88%,transparent);
-  backdrop-filter:saturate(160%) blur(14px);border-bottom:1px solid var(--line);
-  /* break out of the ad-rail gutters so the bar spans the full page width */
-  margin-left:calc(-1 * var(--rail));margin-right:calc(-1 * var(--rail))}
+  backdrop-filter:saturate(160%) blur(14px);border-bottom:1px solid var(--line)}
 .topbar .wrap{display:flex;align-items:center;gap:22px;height:60px;max-width:none;padding:0 clamp(20px,3.4vw,44px)}
 /* Brand lockup: pixel-basketball mark + DUNKWISE in uppercase mono */
 .brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:16px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;flex:none}
@@ -865,33 +863,6 @@ table.ref th{padding:14px 12px 10px}   /* top padding so headers aren't jammed a
 table.ref .who{display:inline-flex;align-items:center;gap:11px;min-width:0}
 
 /* ============================================================
-   v14 — reserved side rails for ads (desktop) + rail slots
-   ============================================================ */
-/* Reserve symmetric side gutters on desktop so left/right rail ads never
-   overlap content. --rail scales with viewport; content (max --maxw) centers
-   in the remaining space. 0 on mobile/tablet. */
-:root{ --rail: 0px; }
-body{ padding-left: var(--rail); padding-right: var(--rail); }
-@media (min-width: 1240px){ :root{ --rail: 172px; } }
-@media (min-width: 1500px){ :root{ --rail: 208px; } }
-@media (min-width: 1800px){ :root{ --rail: 248px; } }
-
-/* Turnkey rail slots — sit in the reserved gutter, fixed while scrolling.
-   Drop ad markup inside <div class="slot"> (or remove the placeholder text). */
-.ad-rail{ display: none; }
-@media (min-width: 1240px){
-  .ad-rail{ position: fixed; top: 0; bottom: 0; width: var(--rail); z-index: 4;
-    display: flex; align-items: center; justify-content: center; pointer-events: none; }
-  .ad-rail-l{ left: 0; }
-  .ad-rail-r{ right: 0; }
-  .ad-rail .slot{ width: 160px; height: 600px; pointer-events: auto;
-    border: 1px dashed var(--line-strong); border-radius: 12px; background: var(--panel);
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase;
-    color: var(--ink-4); }
-}
-
-/* ============================================================
    Games — index cards, box scores, per-player recent games
    ============================================================ */
 .gday{margin-bottom:26px}
@@ -1106,14 +1077,6 @@ table.ref td.peak::after{content:"";position:absolute;top:6px;right:5px;width:5p
 .sk-cardbox{height:98px;border-radius:14px}
 .sk-cardbox.tall{height:150px}
 @media (max-width:640px){.sk-ava{width:64px;height:64px}.sk-hero{padding:18px;gap:14px}.sk-btn{width:84px}.sk-cards{grid-template-columns:1fr 1fr}.sk-cardbox.tall{height:120px}}
-
-/* ---- in-content ad slot: a leaderboard unit dropped into the long scroll of
-   player / game pages, where the fixed side rails under-monetize. ---- */
-.ad-inline{margin:26px 0;display:flex;flex-direction:column;align-items:center;gap:6px}
-.ad-inline .slot{width:100%;max-width:728px;min-height:114px;display:flex;align-items:center;justify-content:center;
-  border:1px dashed var(--line-strong);border-radius:14px;background:var(--panel);
-  font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-4)}
-.ad-inline .lbl{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);opacity:.75}
 
 /* ---- related internal links: teammates, draft class, head-to-head. Denser
    internal linking lifts pages/session and SEO. ---- */
