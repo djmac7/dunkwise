@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: July 28, 2026
+# Last Updated: July 29, 2026
 
 ownerdomain=dunkwise.com
 
@@ -493,3 +493,24 @@ rubiconproject.com, 17130, RESELLER, 0bfd66d529a55807
 openx.com, 541017750, RESELLER, 6a698e2ec38604c6
 smartadserver.com, 4883, RESELLER, 060d053dcf45cbf3
 sharethrough.com, 4883, RESELLER, d53b998a7bd4ecd2
+
+# Woven
+wovenaudience.com, 1004, DIRECT
+onetag.com, 973abf4686535df, DIRECT
+video.unrulymedia.com, 586616193, RESELLER
+richaudience.com, dAs91iDiUH, DIRECT
+appnexus.com, 8233, RESELLER
+pubmatic.com, 81564, RESELLER, 5d62403b186f2ace
+pubmatic.com, 156538, RESELLER, 5d62403b186f2ace
+rubiconproject.com, 13510, RESELLER
+adform.com, 1942, RESELLER
+seedtag.com, 6a624e838e3b4c0007587b5b, DIRECT
+xandr.com, 4009, DIRECT, f5ab79cb980f11d1
+beachfront.com, 15250, RESELLER, e2541279e8e2ca4d
+smartadserver.com, 3050, DIRECT
+rubiconproject.com, 17280, DIRECT, 0bfd66d529a55807
+pubmatic.com, 157743, DIRECT, 5d62403b186f2ace
+robust-apps.com, 501, DIRECT
+triplelift.com, 14706, RESELLER, 6c33edb13117fd86
+rubiconproject.com, 28021, RESELLER, 0bfd66d529a55807
+video.unrulymedia.com, 158944470, RESELLER
