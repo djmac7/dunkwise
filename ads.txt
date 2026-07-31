@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: July 29, 2026
+# Last Updated: July 31, 2026
 
 ownerdomain=dunkwise.com
 
@@ -26,6 +26,17 @@ rubiconproject.com, 23844, RESELLER
 openx.com, 559680764, RESELLER
 appnexus.com, 12290, RESELLER
 sharethrough.com, a6a34444, RESELLER
+
+# Apester
+apester.com, 07302, DIRECT
+triplelift.com, 5984, RESELLER, 6c33edb13117fd86
+smartadserver.com, 3160, RESELLER, 060d053dcf45cbf3
+sharethrough.com, 3160, RESELLER, d53b998a7bd4ecd2
+xandr.com, 13955, RESELLER
+pubmatic.com, 165864, RESELLER, 5d62403b186f2ace
+pubmatic.com, 156559, RESELLER, 5d62403b186f2ace
+openx.com, 564879531, RESELLER, 6a698e2ec38604c6
+video.unrulymedia.com, 829160295, RESELLER
 
 # AppNexus
 xandr.com, 17666, DIRECT
@@ -284,6 +295,7 @@ lijit.com, 402418, RESELLER, fafdf38b16bf6b2b
 onetag.com, 87f80e5d9d55274, RESELLER
 smilewanted.com, 5314, RESELLER
 adagio.io, 1419, RESELLER
+adform.com, 3418, RESELLER, 9f5210a2f0999e32
 
 # Primis
 primis.tech, 31819, DIRECT, b6b21d256ef43532
