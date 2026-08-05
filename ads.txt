@@ -300,6 +300,7 @@ pubsfusion, 11012, DIRECT
 bidstrade.io, 8054, RESELLER
 contxtful.com, 260126, RESELLER
 kueez.com, 5c62cffa63e46f785563da626159ad59, RESELLER
+risecodes.com, 661fc591c3a3ef0001984071, DIRECT
 
 # Primis
 primis.tech, 31819, DIRECT, b6b21d256ef43532
