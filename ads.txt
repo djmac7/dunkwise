@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: August 5, 2026
+# Last Updated: August 7, 2026
 
 ownerdomain=dunkwise.com
 
@@ -30,8 +30,9 @@ sharethrough.com, a6a34444, RESELLER
 # Apester
 apester.com, 07302, DIRECT
 triplelift.com, 5984, RESELLER, 6c33edb13117fd86
-smartadserver.com, 3160, RESELLER, 060d053dcf45cbf3
-sharethrough.com, 3160, RESELLER, d53b998a7bd4ecd2
+lijit.com, 383910, RESELLER, fafdf38b16bf6b2b
+risecodes.com, 5857d2ee263dc90002000001, RESELLER
+cas.ai, 1973ed25, RESELLER
 xandr.com, 13955, RESELLER
 pubmatic.com, 165864, RESELLER, 5d62403b186f2ace
 pubmatic.com, 156559, RESELLER, 5d62403b186f2ace
@@ -422,7 +423,14 @@ adform.com, 3119, RESELLER, 9f5210a2f0999e32
 yieldmo.com, 2754490424016969782, RESELLER
 conversantmedia.com, 100242, RESELLER, 03113cd04947736d
 sonobi.com, 4a289cdd79, RESELLER, d1a215d9eb5aee9e
-insticator.com, 33982127-4b91-4d23-9273-e18b7738b70f, RESELLER, b3511ffcafb23a32
+
+# RobustApps
+robust-apps.com, 553, DIRECT
+rubiconproject.com, 28021, RESELLER, 0bfd66d529a55807
+triplelift.com, 14706, RESELLER, 6c33edb13117fd86
+video.unrulymedia.com, 158944470, RESELLER
+lijit.com, 568191, RESELLER, fafdf38b16bf6b2b #SOVR
+appnexus.com, 3920, RESELLER
 
 # Seedtag
 seedtag.com, 686be9b157dbaa000742061a, DIRECT
