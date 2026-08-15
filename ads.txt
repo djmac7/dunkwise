@@ -303,32 +303,6 @@ contxtful.com, 260126, RESELLER
 kueez.com, 5c62cffa63e46f785563da626159ad59, RESELLER
 risecodes.com, 661fc591c3a3ef0001984071, DIRECT
 
-# Primis
-primis.tech, 31819, DIRECT, b6b21d256ef43532
-adform.com, 2078, RESELLER
-appnexus.com, 16007, RESELLER, f5ab79cb980f11d1
-google.com, pub-1320774679920841, RESELLER, f08c47fec0942fa0
-indexexchange.com, 191923, RESELLER, 50b1c356f2c5c8fc
-media.net, 8CU695QH7, RESELLER
-openx.com, 540258065, RESELLER, 6a698e2ec38604c6
-pmc.com, 1240739, RESELLER, 8dd52f825890bb44
-pubmatic.com, 156595, RESELLER, 5d62403b186f2ace
-pubmatic.com, 164358, RESELLER, 5d62403b186f2ace
-rubiconproject.com, 10278, RESELLER, 0bfd66d529a55807
-rubiconproject.com, 20130, RESELLER, 0bfd66d529a55807
-sharethrough.com, flUyJowI, RESELLER, d53b998a7bd4ecd2
-sharethrough.com, jbYv3ec8, RESELLER, d53b998a7bd4ecd2
-smartadserver.com, 3436, RESELLER, 060d053dcf45cbf3
-triplelift.com, 8210, RESELLER, 6c33edb13117fd86
-video.unrulymedia.com, 2338962694, RESELLER
-yahoo.com, 59260, RESELLER
-freewheel.tv, sg1260960, RESELLER
-freewheel.tv, 536419-r-524565, RESELLER
-freewheel.tv, 536419-r-523319, RESELLER
-sharethrough.com, 3436, RESELLER, d53b998a7bd4ecd2
-ottadvisors.com, 122034096467, RESELLER
-video.unrulymedia.com, 776418614052335749, RESELLER
-
 # PubX
 pubx.ai, 239668474927409, DIRECT
 rubiconproject.com, 27172, RESELLER, 0bfd66d529a55807
