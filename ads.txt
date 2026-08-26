@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: August 24, 2026
+# Last Updated: August 26, 2026
 
 ownerdomain=dunkwise.com
 
@@ -365,6 +365,7 @@ video.unrulymedia.com, 273421059, RESELLER
 appnexus.com, 6849, RESELLER
 pubmatic.com, 159277, RESELLER
 rubiconproject.com, 15268, RESELLER
+sharethrough.com, 3389, RESELLER, d53b998a7bd4ecd2
 
 # Teal
 teal.works, 0000081, DIRECT
