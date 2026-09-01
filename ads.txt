@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: August 31, 2026
+# Last Updated: September 1, 2026
 
 ownerdomain=dunkwise.com
 
