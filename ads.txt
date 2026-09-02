@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: September 1, 2026
+# Last Updated: September 2, 2026
 
 ownerdomain=dunkwise.com
 
@@ -75,6 +75,7 @@ video.unrulymedia.com, 234364657, RESELLER, 98c21ef9a666c68b
 # Google
 google.com, pub-8106464143521063, DIRECT, f08c47fec0942fa0
 google.com, pub-7050777987430261, DIRECT, f08c47fec0942fa0
+google.com, pub-7351088416754764, DIRECT, f08c47fec0942fa0
 
 # GumGum
 gumgum.com, 16110, RESELLER, ffdef49475d318a9
@@ -373,6 +374,7 @@ appnexus.com, 6849, RESELLER
 pubmatic.com, 159277, RESELLER
 rubiconproject.com, 15268, RESELLER
 sharethrough.com, 3389, RESELLER, d53b998a7bd4ecd2
+themediagrid.com, NEJFKT, RESELLER, 9fac4a4a87c2a44f
 
 # Teal
 teal.works, 0000081, DIRECT
