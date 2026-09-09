@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: September 7, 2026
+# Last Updated: September 8, 2026
 
 ownerdomain=dunkwise.com
 
@@ -426,3 +426,5 @@ pubmatic.com, 157743, DIRECT, 5d62403b186f2ace
 rubiconproject.com, 28673, RESELLER, 0bfd66d529a55807
 nativo.com, 6180, DIRECT, 59521ca7cc5e9fee
 triplelift.com, 14858, RESELLER, 6c33edb13117fd86
+adipolo.com, woven226, DIRECT
+risecodes.com, 6a96c62bdd67120001aa344a, DIRECT
