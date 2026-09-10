@@ -6,9 +6,10 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: September 8, 2026
+# Last Updated: September 9, 2026
 
 ownerdomain=dunkwise.com
+managerdomain=rev.iq
 
 rev.iq, QDBP1m6dFbh1BqH_xmuGvzmTK3Q, DIRECT
 google.com, pub-6729046591418183, DIRECT, f08c47fec0942fa0
