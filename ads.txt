@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: September 9, 2026
+# Last Updated: September 10, 2026
 
 ownerdomain=dunkwise.com
 managerdomain=rev.iq
@@ -58,7 +58,7 @@ pubmatic.com, 164187, RESELLER, 5d62403b186f2ace
 rubiconproject.com, 26144, RESELLER, 0bfd66d529a55807
 
 # Geniee
-genieesspv.jp, 38623, RESELLER
+"genieesspv.jp, 38623, RESELLER
 appnexus.com, 16480, RESELLER, f5ab79cb980f11d1
 rubiconproject.com, 11534, RESELLER, 0bfd66d529a55807
 openx.com, 562132006, RESELLER, 6a698e2ec38604c6
@@ -71,7 +71,7 @@ adyoulike.com, e5e7ca331840ac2c04bbe4b92465895d, RESELLER
 bidinfluence.com, 700177, RESELLER
 selectmedia.asia, 878yy6c5d1794a3580358v8r, RESELLER, e365c871a27c655d
 conversantmedia.com, 100357, RESELLER, 03113cd04947736d
-video.unrulymedia.com, 234364657, RESELLER, 98c21ef9a666c68b
+video.unrulymedia.com, 234364657, RESELLER, 98c21ef9a666c68b"
 
 # Google
 google.com, pub-8106464143521063, DIRECT, f08c47fec0942fa0
@@ -404,6 +404,7 @@ video.unrulymedia.com, 799061815, RESELLER
 onetag.com, 87f58fe90234d0e, RESELLER
 media.net, 8CU67TH23, RESELLER
 sharethrough.com, KGPeiFc6, RESELLER, d53b998a7bd4ecd2
+sharethrough.com, 5302, RESELLER, d53b998a7bd4ecd2
 amxrtb.com, 105199734, RESELLER
 yieldmo.com, 3377199372461613093, RESELLER
 smartadserver.com, 5302, RESELLER, 060d053dcf45cbf
