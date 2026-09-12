@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: September 10, 2026
+# Last Updated: September 11, 2026
 
 ownerdomain=dunkwise.com
 managerdomain=rev.iq
@@ -92,6 +92,25 @@ appnexus.com, 2758, RESELLER, f5ab79cb980f11d1
 
 # Inmobi
 inmobi.com, f58efa6f50534159bf17359871526b8c, DIRECT, 83e75a7ae333ca9d
+
+# Lunamedia
+lunamedia.io, ja26g113-jgf1-49hs-a4g1-n43c69175df5, DIRECT, 524ecb396915caaf
+lunamedia.io, aa77g124-jg61-22js-a0a8-n13j64275dd2, DIRECT, 524ecb396915caaf
+lunamedia.io, gj84g172-jg5a-27jj-a6a2-n09j64212dh2, DIRECT, 524ecb396915caaf
+lunamedia.io, kj55g191-ls8a-9rjl-a725-n74j61285dj9, DIRECT, 524ecb396915caaf
+lunamedia.io, jg63j131-lb5a-kgj2-a72r-n25j26275gj9, DIRECT, 524ecb396915caaf
+triplelift.com, 14823, RESELLER, 6c33edb13117fd86
+vidazoo.com, 6a04bf983b6b70e1f48a52c2, RESELLER, b6ada874b4d7d0b2
+themediagrid.com, FALINO, DIRECT, 9fac4a4a87c2a44f
+lijit.com, 367217, RESELLER, fafdf38b16bf6b2b
+pubmatic.com, 160493, RESELLER, 5d62403b186f2ace
+rubiconproject.com, 24170, RESELLER, 0bfd66d529a55807
+smartadserver.com, 4539, RESELLER, 060d053dcf45cbf3
+sharethrough.com, 4539, RESELLER, d53b998a7bd4ecd2
+Media.net, 8CUL012HF, RESELLER
+pubmatic.com, 160492, RESELLER, 5d62403b186f2ace
+conversantmedia.com, 100322, RESELLER, 03113cd04947736d
+seedtag.com, 6a8495f8f228bc0007dad9eb, DIRECT
 
 # Magnite
 rubiconproject.com, 26884, RESELLER, 0bfd66d529a55807
