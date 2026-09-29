@@ -427,6 +427,10 @@ sharethrough.com, 5302, RESELLER, d53b998a7bd4ecd2
 amxrtb.com, 105199734, RESELLER
 yieldmo.com, 3377199372461613093, RESELLER
 smartadserver.com, 5302, RESELLER, 060d053dcf45cbf
+smaato.com, 1100060509, RESELLER, 07bcf65f187117b4
+conversantmedia.com, 100346, RESELLER, 03113cd04947736d
+eskimi.com, 2020001296, RESELLER
+visiblemeasures.com, 1002, RESELLER
 
 # woven
 wovenaudience.com, 1004, DIRECT
