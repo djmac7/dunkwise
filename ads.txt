@@ -54,7 +54,7 @@ pubmatic.com, 164187, RESELLER, 5d62403b186f2ace
 rubiconproject.com, 26144, RESELLER, 0bfd66d529a55807
 
 # geniee
-"genieesspv.jp, 38623, RESELLER
+genieesspv.jp, 38623, RESELLER
 appnexus.com, 16480, RESELLER, f5ab79cb980f11d1
 rubiconproject.com, 11534, RESELLER, 0bfd66d529a55807
 openx.com, 562132006, RESELLER, 6a698e2ec38604c6
@@ -453,3 +453,14 @@ nativo.com, 6180, DIRECT, 59521ca7cc5e9fee
 triplelift.com, 14858, RESELLER, 6c33edb13117fd86
 adipolo.com, woven226, DIRECT
 risecodes.com, 6a96c62bdd67120001aa344a, DIRECT
+omni-dex.io, 100115, DIRECT
+onlinemediasolutions.com, 21159, DIRECT, b3868b187e4b6402
+onomagic.com, 211591, DIRECT
+getmediamx.com, 1221159, DIRECT
+adgrid.io, 37931, DIRECT
+pubmatic.com, 165750, RESELLER, 5d62403b186f2ace
+openx.com, 537153209, RESELLER, 6a698e2ec38604c6
+spotim.market, e9a771d72c076dbe3cafc2c6477f9238, RESELLER, 077e5f709d15bdbb
+lijit.com, 374814, RESELLER, fafdf38b16bf6b2b
+dauup.com, 34138, RESELLER, 4daba13e2b0dfd92
+opera.com, pub9444418699648, RESELLER, 55a0c5fd61378de3
