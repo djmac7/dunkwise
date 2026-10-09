@@ -466,3 +466,8 @@ spotim.market, e9a771d72c076dbe3cafc2c6477f9238, RESELLER, 077e5f709d15bdbb
 lijit.com, 374814, RESELLER, fafdf38b16bf6b2b
 dauup.com, 34138, RESELLER, 4daba13e2b0dfd92
 opera.com, pub9444418699648, RESELLER, 55a0c5fd61378de3
+imds.tv, 82786, RESELLER, ae6c32151e71f19d
+advertising.com, 82786, RESELLER, ae6c32151e71f19d
+themediagrid.com, KMX76A, DIRECT, 35d5010d7789b49d
+video.unrulymedia.com, 592590137, RESELLER
+improvedigital.com, 1669, RESELLER # ImproveDigital
