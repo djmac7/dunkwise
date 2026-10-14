@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: October 13, 2026
+# Last Updated: October 14, 2026
 
 ownerdomain=dunkwise.com
 managerdomain=rev.iq
@@ -471,3 +471,5 @@ advertising.com, 82786, RESELLER, ae6c32151e71f19d
 themediagrid.com, KMX76A, DIRECT, 35d5010d7789b49d
 video.unrulymedia.com, 592590137, RESELLER
 improvedigital.com, 1669, RESELLER # ImproveDigital
+smaato.com, 1100059219, RESELLER, 07bcf65f187117b4
+zetaglobal.net, 562, RESELLER
