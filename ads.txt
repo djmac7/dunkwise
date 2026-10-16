@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: October 14, 2026
+# Last Updated: October 16, 2026
 
 ownerdomain=dunkwise.com
 managerdomain=rev.iq
@@ -42,6 +42,7 @@ zetaglobal.net, 937, RESELLER
 adform.com, 2831, RESELLER, 9f5210a2f0999e32
 smilewanted.com, 4137, RESELLER
 outbrain.com, 00c3f2f972dd2225bfaa95a9838a0aed64, RESELLER
+adagio.io, 1290, RESELLER
 
 # blockthrough
 blockthrough.com, 5205627634188288, DIRECT
