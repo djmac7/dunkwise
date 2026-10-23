@@ -33,6 +33,7 @@ adform.com, 2831, RESELLER, 9f5210a2f0999e32
 smilewanted.com, 4137, RESELLER
 outbrain.com, 00c3f2f972dd2225bfaa95a9838a0aed64, RESELLER
 adagio.io, 1290, RESELLER
+insticator.com, 1ce4cf56-64ad-49f5-a5df-160922a988db, RESELLER, b3511ffcafb23a32
 
 # blockthrough
 blockthrough.com, 5205627634188288, DIRECT
