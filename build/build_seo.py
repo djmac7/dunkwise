@@ -150,6 +150,7 @@ def page(title, desc, canon, body, jsonld=None, og_type="website"):
     <a href="{BASE}/" class="brand"><span class="dot"></span> Dunkwise</a>
     <p>A modern NBA reference — every player and team, all-time leaders, standings, awards and salaries from 1947 to today.</p>
     <p class="disc">Historical data from public datasets, rounded for display. Not affiliated with the NBA, its teams, or the NBPA.</p>
+    <p class="disc">Also from our team: <a href="https://onsuki.com/">Onsuki</a>, online booking and payments for salons, spas and studios in the Philippines.</p>
   </div>
   <div class="foot-cols">
     <div>
