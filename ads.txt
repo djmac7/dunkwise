@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: November 6, 2026
+# Last Updated: November 9, 2026
 
 ownerdomain=dunkwise.com
 managerdomain=rev.iq
@@ -173,6 +173,7 @@ smaato.com, 1100059753, RESELLER, 07bcf65f187117b4
 smartadserver.com, 5670, RESELLER, 060d053dcf45cbf3
 sharethrough.com, 5670, RESELLER, 060d053dcf45cbf3
 video.unrulymedia.com, 352755262, RESELLER
+inmobi.com, eb00616162ed4785ae9ccb8e7d72f4e5, RESELLER, 83e75a7ae333ca9d
 
 # amazon
 aps.amazon.com, bc90e133-c9d1-4a4f-9127-6ef2478418c2, DIRECT
@@ -180,11 +181,8 @@ aps.amazon.com, bc90e133-c9d1-4a4f-9127-6ef2478418c2, DIRECT
 # apester
 apester.com, 07302, DIRECT
 triplelift.com, 5984, RESELLER, 6c33edb13117fd86
-risecodes.com, 5857d2ee263dc90002000001, RESELLER
 xandr.com, 13955, RESELLER
 pubmatic.com, 165864, RESELLER, 5d62403b186f2ace
-pubmatic.com, 156559, RESELLER, 5d62403b186f2ace
-openx.com, 564879531, RESELLER, 6a698e2ec38604c6
 video.unrulymedia.com, 829160295, RESELLER
 rubiconproject.com, 17178, RESELLER, 0bfd66d529a55807
 zetaglobal.net, 937, RESELLER
@@ -193,6 +191,11 @@ smilewanted.com, 4137, RESELLER
 outbrain.com, 00c3f2f972dd2225bfaa95a9838a0aed64, RESELLER
 adagio.io, 1290, RESELLER
 insticator.com, 1ce4cf56-64ad-49f5-a5df-160922a988db, RESELLER, b3511ffcafb23a32
+vdo.ai, 5995, RESELLER
+league-m.de, 106, RESELLER
+richaudience.com, FE7SmWPKQr, RESELLER
+supply.colossusssp.com, 932, RESELLER
+amxrtb.com, 105199329, RESELLER
 
 # blockthrough
 blockthrough.com, 5205627634188288, DIRECT
@@ -282,6 +285,12 @@ admanmedia.com, 2396, RESELLER
 spotim.market, e9a771d72c076dbe3cafc2c6477f9238, RESELLER, 077e5f709d15bdbb
 conversantmedia.com, 101273, RESELLER, 03113cd04947736d
 triplelift.com, 14829, RESELLER, 6c33edb13117fd86
+risecodes.com, 6a589deb0901b30001569589, RESELLER
+gannett.com, 620022, RESELLER
+pubmatic.com, 168564, RESELLER, 5d62403b186f2ace
+triplelift.com, 14848, RESELLER, 6c33edb13117fd86
+triplelift.com, 10250, RESELLER, 6c33edb13117fd86
+smartadserver.com, 5564, RESELLER, 060d053dcf45cbf3
 
 # openx
 openx.com, 561436647, RESELLER, 6a698e2ec38604c6
