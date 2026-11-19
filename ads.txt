@@ -6,7 +6,7 @@
 # advertising technology. Contact us at demand@rev.iq
 
 # Version reviq-v1.1
-# Last Updated: November 16, 2026
+# Last Updated: November 19, 2026
 
 ownerdomain=dunkwise.com
 managerdomain=rev.iq
@@ -359,6 +359,12 @@ appnexus.com, 10264, RESELLER, f5ab79cb980f11d1
 pubmatic.com, 156383, RESELLER, 5d62403b186f2ace
 themediagrid.com, VIY354, RESELLER, 35d5010d7789b49d
 smartadserver.com, 1743, RESELLER, 060d053dcf45cbf3
+loopme.com, 20222, RESELLER, 6c8d5f95897a5a3b
+indexexchange.com, 211613, RESELLER, 50b1c356f2c5c8fc
+themediagrid.com, 4ZVFEU, RESELLER, 9fac4a4a87c2a44f
+pubmatic.com, 158154, RESELLER, 5d62403b186f2ace
+video.unrulymedia.com, 2148207460, RESELLER
+zetaglobal.net, 633, RESELLER
 
 # rise
 risecodes.com, 65831af2a67d3600018f098a, DIRECT
@@ -544,17 +550,6 @@ nativo.com, 6180, DIRECT, 59521ca7cc5e9fee
 triplelift.com, 14858, RESELLER, 6c33edb13117fd86
 adipolo.com, woven226, DIRECT
 risecodes.com, 6a96c62bdd67120001aa344a, DIRECT
-omni-dex.io, 100115, DIRECT
-onlinemediasolutions.com, 21159, DIRECT, b3868b187e4b6402
-onomagic.com, 211591, DIRECT
-getmediamx.com, 1221159, DIRECT
-adgrid.io, 37931, DIRECT
-pubmatic.com, 165750, RESELLER, 5d62403b186f2ace
-openx.com, 537153209, RESELLER, 6a698e2ec38604c6
-spotim.market, e9a771d72c076dbe3cafc2c6477f9238, RESELLER, 077e5f709d15bdbb
-lijit.com, 374814, RESELLER, fafdf38b16bf6b2b
-dauup.com, 34138, RESELLER, 4daba13e2b0dfd92
-opera.com, pub9444418699648, RESELLER, 55a0c5fd61378de3
 imds.tv, 82786, RESELLER, ae6c32151e71f19d
 advertising.com, 82786, RESELLER, ae6c32151e71f19d
 themediagrid.com, KMX76A, DIRECT, 35d5010d7789b49d
@@ -562,3 +557,18 @@ video.unrulymedia.com, 592590137, RESELLER
 improvedigital.com, 1669, RESELLER # ImproveDigital
 smaato.com, 1100059219, RESELLER, 07bcf65f187117b4
 zetaglobal.net, 562, RESELLER
+omgstudios.com, 301020262, RESELLER
+firstimpression.io, 5173, RESELLER
+kodigital.io, KO100037, RESELLER
+smilewanted.com, 4119, RESELLER
+appnexus.com, 10478, RESELLER, f5ab79cb980f11d1
+openx.com, 539819368, RESELLER, 6a698e2ec38604c6
+openx.com, 540623812, RESELLER, 6a698e2ec38604c6
+appnexus.com, 17564, RESELLER, f5ab79cb980f11d1
+lijit.com, 243408, RESELLER, fafdf38b16bf6b2b
+balance-x.com, 144, DIRECT
+lunamedia.io, 5faed6a9-d39b-456a-9bea-60b6a8763fa7, RESELLER, 524ecb396915caaf
+bematterfull.com, 4d1e2910-f228-4bbd-a678-40415bb4d699, RESELLER
+admanmedia.com, 2470, RESELLER
+yieldmo.com, 4198227179730837507, RESELLER
+eskimi.com, 2020001346, RESELLER
